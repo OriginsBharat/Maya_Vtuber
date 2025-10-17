@@ -19,32 +19,74 @@ class Persona:
         """
         raise NotImplementedError("Subclasses must implement _create_system_prompt.")
 
-    def generate_response(self, latest_message: str) -> str:
+    def generate_response(self, latest_message: str, is_roleplay: bool = False) -> str:
         """
-        Generates a response from the persona.
-
-        1. Retrieves conversation history from memory.
-        2. Calls the brain to get a response, using the specific persona's system prompt.
-        3. Logs the user's message and the AI's response to memory.
+        Generates a standard conversational response from the persona.
 
         Args:
             latest_message: The latest message from the user.
+            is_roleplay: Flag indicating if this is a private message from the director.
 
         Returns:
             The persona's response as a string.
         """
-        # 1. Retrieve history
         history = self.memory.get_history(self.user_id)
 
-        # 2. Get response from brain
+        # Add context if it's a private roleplay message from the director
+        if is_roleplay:
+            latest_message = (
+                f"(This is a private, in-character voice message from my creator, originsbharat. "
+                f"I must respond to it lovingly and in-character.)\n\n{latest_message}"
+            )
+
         ai_response = self.brain.get_response(
             system_prompt=self.system_prompt,
             conversation_history=history,
             latest_message=latest_message
         )
 
-        # 3. Log the interaction to memory
+        # Log the interaction to memory
         self.memory.log_message(self.user_id, "user", latest_message)
         self.memory.log_message(self.user_id, "assistant", ai_response)
 
         return ai_response
+
+    def execute_directive(self, directive: str) -> str:
+        """
+        Executes a high-level directive from the director.
+
+        1. Gets the recent conversation history for context.
+        2. Asks the brain to process the directive into a concrete action plan.
+        3. Asks the persona to execute the action plan in character.
+        4. Logs the final response to memory.
+
+        Args:
+            directive: The natural language directive.
+
+        Returns:
+            The persona's response after executing the directive.
+        """
+        history = self.memory.get_history(self.user_id)
+
+        # Get the action plan from the brain
+        action_plan = self.brain.process_directive(directive, history)
+
+        # Create a new message for the persona to execute the plan
+        execution_message = (
+            f"(My creator, originsbharat, has given me a direct order. "
+            f"I must follow this instruction exactly, but in my own unique voice and personality. "
+            f"Instruction: '{action_plan}')"
+        )
+
+        # The persona "talks to itself" to generate the response based on the directive
+        final_response = self.brain.get_response(
+            system_prompt=self.system_prompt,
+            conversation_history=history,
+            latest_message=execution_message
+        )
+
+        # Log the directive and the response
+        self.memory.log_message(self.user_id, "director", directive)
+        self.memory.log_message(self.user_id, "assistant", final_response)
+
+        return final_response

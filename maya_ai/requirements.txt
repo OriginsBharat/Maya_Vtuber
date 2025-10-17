@@ -4,3 +4,19 @@
 # Using anthropic client for now, will add others as needed.
 anthropic
 python-dotenv
+
+# For Text-to-Speech
+# Note: index-tts might require a more complex installation from its GitHub repo.
+# We are adding it here for dependency tracking.
+indextts
+simpleaudio
+torch
+
+# For YouTube API
+google-api-python-client
+google-auth-httplib2
+google-auth-oauthlib
+
+# For Speech Recognition
+SpeechRecognition
+PyAudio
