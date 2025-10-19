@@ -47,6 +47,15 @@ Your Action Plan Output: "Find the comment from 'CreepyUser' and roast them for 
 
 Example Directive: "create a video about dogs from r/aww"
 Your Action Plan Output: "[PLAN: scrape_content r/aww dogs, generate_commentary, synthesize_audio, create_video]"
+
+Example Directive: "upload the last video with title My New Video"
+Your Action Plan Output: "[PLAN: upload_video, title My New Video]"
+
+Example Directive: "dub the last video in spanish"
+Your Action Plan Output: "[PLAN: dub_video, lang es]"
+
+Example Directive: "create an episode about friendship"
+Your Action Plan Output: "[PLAN: create_episode, prompt friendship]"
 """
         directive_message = f"""\
 Directive: "{directive}"
@@ -129,6 +138,43 @@ My next action should be:
         except json.JSONDecodeError:
             print("🚨 Brain returned invalid JSON. Defaulting to chat.")
             return '{"action": "chat", "message": "I got a little confused there."}'
+
+    def write_episode_script(self, story_prompt: str) -> str:
+        """
+        Writes a short episode script based on a high-level prompt.
+
+        Args:
+            story_prompt: The director's prompt for the story.
+
+        Returns:
+            A structured script with scene descriptions and dialogue.
+        """
+        print(f"✍️ Brain is writing a script for: '{story_prompt}'")
+
+        scriptwriting_system_prompt = """\
+You are a creative scriptwriter for an AI VTuber show starring two AI sisters, Sarjana (the kind one) and Durjana (the chaotic one).
+Your task is to write a short, simple, two-scene script based on the director's prompt.
+The output MUST be in a structured format like this:
+
+[SCENE_START]
+SCENE_DESCRIPTION: A brief, visual description of the scene.
+SARJANA: Her dialogue.
+DURJANA: Her dialogue.
+[SCENE_END]
+
+[SCENE_START]
+SCENE_DESCRIPTION: A second visual description.
+SARJANA: Her dialogue.
+DURJANA: Her dialogue.
+[SCENE_END]
+
+Keep the dialogue in character and the scenes simple and easy to visualize.
+"""
+        messages = [{"role": "user", "content": f"The story prompt is: '{story_prompt}'. Write the script."}]
+
+        script = self._execute_llm_call(scriptwriting_system_prompt, messages)
+        print("✅ Brain finished writing script.")
+        return script
 
     def _format_history_for_prompt(self, conversation_history: list) -> str:
         """Helper to format history for the directive prompt."""

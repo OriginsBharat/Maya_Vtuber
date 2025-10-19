@@ -41,7 +41,7 @@ class TTSManager:
         )
         print("✅ TTS Model loaded.")
 
-    def speak(self, text: str, voice_prompt_path: str, output_path: str = "output.wav"):
+    def speak(self, text: str, voice_prompt_path: str, output_path: str = "output.wav", language: str = 'en'):
         """
         Generates speech from text using a voice prompt and plays it.
 
@@ -49,6 +49,7 @@ class TTSManager:
             text: The text to be spoken.
             voice_prompt_path: Path to the .wav file to be used for voice cloning.
             output_path: The path to save the generated audio file.
+            language: The language of the text (e.g., 'en', 'hi', 'zh-cn').
         """
         print(f"Synthesizing speech for: '{text}'")
 

@@ -29,3 +29,13 @@ requests
 
 # For Minecraft Agent WebSocket Bridge
 websocket-client
+
+# For Translation
+translators
+
+# For Image Generation (Stable Diffusion)
+diffusers
+transformers
+accelerate
+invisible-watermark
+Pillow
