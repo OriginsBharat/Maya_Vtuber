@@ -1,14 +1,13 @@
 # This file will contain the Python dependencies for the Maya AI project.
 # We will add libraries like openai, sqlalchemy, etc. as we build the components.
 # For now, it is a placeholder.
-# Using anthropic client for now, will add others as needed.
-anthropic
+# The 'openai' client is used to connect to the local Ollama server.
+openai
 python-dotenv
 
 # For Text-to-Speech
-# Note: index-tts might require a more complex installation from its GitHub repo.
-# We are adding it here for dependency tracking.
-indextts
+# Note: index-tts requires a complex manual installation from its GitHub repo.
+# It is not included here but must be installed in the environment for TTS to function.
 simpleaudio
 torch
 
@@ -20,3 +19,13 @@ google-auth-oauthlib
 # For Speech Recognition
 SpeechRecognition
 PyAudio
+
+# For Web Scraping
+praw
+requests
+
+# For Video Editing
+# We now use ffmpeg directly, so moviepy is not needed.
+
+# For Minecraft Agent WebSocket Bridge
+websocket-client

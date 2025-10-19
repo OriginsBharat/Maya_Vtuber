@@ -2,7 +2,6 @@ from pathlib import Path
 import torch
 # We will need to add 'indextts' to our dependencies later.
 # For now, we assume it's installed in the environment.
-from indextts.infer_v2 import IndexTTS2
 import simpleaudio as sa # A simple library for playing audio
 
 class TTSManager:
@@ -19,6 +18,14 @@ class TTSManager:
             use_fp16: Whether to use half-precision for faster inference.
         """
         print("🔊 Initializing TTS Manager...")
+        try:
+            from indextts.infer_v2 import IndexTTS2
+        except ImportError:
+            raise ImportError(
+                "The 'indextts' library is not installed. "
+                "Please follow the manual installation instructions from its GitHub repository."
+            )
+
         if not Path(model_dir).exists() or not Path(cfg_path).exists():
             raise FileNotFoundError(
                 "TTS model directory or config not found. "

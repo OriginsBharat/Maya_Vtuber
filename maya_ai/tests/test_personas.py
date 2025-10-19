@@ -12,6 +12,7 @@ class TestPersonas(unittest.TestCase):
 
         # Mock the MemoryDatabase class
         self.mock_memory = MagicMock()
+        self.mock_tts = MagicMock()
 
         self.user_id = 1
 
@@ -22,7 +23,7 @@ class TestPersonas(unittest.TestCase):
 
     def test_01_sarjana_persona(self):
         """Test if Sarjana uses the correct system prompt."""
-        sarjana = Sarjana(self.mock_brain, self.mock_memory, self.user_id)
+        sarjana = Sarjana(self.mock_brain, self.mock_memory, self.user_id, self.mock_tts)
 
         # Generate a response
         latest_message = "Hello Sarjana"
@@ -46,7 +47,7 @@ class TestPersonas(unittest.TestCase):
 
     def test_02_durjana_persona(self):
         """Test if Durjana uses the correct system prompt."""
-        durjana = Durjana(self.mock_brain, self.mock_memory, self.user_id)
+        durjana = Durjana(self.mock_brain, self.mock_memory, self.user_id, self.mock_tts)
 
         # Generate a response
         latest_message = "Hello Durjana"

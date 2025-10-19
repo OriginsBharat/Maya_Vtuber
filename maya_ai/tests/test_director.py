@@ -8,6 +8,7 @@ class TestDirectorSystem(unittest.TestCase):
         """Set up mock objects for Brain and Memory."""
         self.mock_brain = MagicMock()
         self.mock_memory = MagicMock()
+        self.mock_tts = MagicMock()
         self.user_id = 1
 
         # The brain will "process" a directive into a simple action plan
@@ -17,7 +18,7 @@ class TestDirectorSystem(unittest.TestCase):
 
     def test_01_execute_directive(self):
         """Test the full flow of a director's text directive."""
-        sarjana = Sarjana(self.mock_brain, self.mock_memory, self.user_id)
+        sarjana = Sarjana(self.mock_brain, self.mock_memory, self.user_id, self.mock_tts)
 
         directive = "This is a test directive."
         final_response = sarjana.execute_directive(directive)
@@ -42,7 +43,7 @@ class TestDirectorSystem(unittest.TestCase):
 
     def test_02_roleplay_response(self):
         """Test the flow of a director's voice (roleplay) message."""
-        sarjana = Sarjana(self.mock_brain, self.mock_memory, self.user_id)
+        sarjana = Sarjana(self.mock_brain, self.mock_memory, self.user_id, self.mock_tts)
 
         roleplay_message = "A private message for you."
         sarjana.generate_response(roleplay_message, is_roleplay=True)
