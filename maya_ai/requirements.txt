@@ -1,0 +1,41 @@
+# Core Brain
+openai
+python-dotenv
+
+# Text-to-Speech
+# Note: index-tts requires a complex manual installation.
+simpleaudio
+torch
+
+# Livestreaming & Socials
+google-api-python-client
+google-auth-httplib2
+google-auth-oauthlib
+
+# Speech Recognition
+SpeechRecognition
+PyAudio
+
+# Web Scraping
+praw
+requests
+
+# Video Editing
+# We use ffmpeg directly.
+
+# Minecraft Agent
+websocket-client
+
+# Translation
+translators
+
+# Image Generation
+diffusers
+transformers
+accelerate
+invisible-watermark
+Pillow
+
+# RAG System (Vector Memory)
+chromadb
+sentence-transformers
