@@ -1,4 +1,5 @@
 import ollama
+from typing import List, Dict
 
 class Persona:
     """
@@ -14,7 +15,7 @@ class Persona:
         """
         self.name = name
         self.system_prompt = system_prompt
-        self.history = [{"role": "system", "content": system_prompt}]
+        self.history: List[Dict[str, str]] = [{"role": "system", "content": system_prompt}]
 
     def generate_response(self, user_input: str) -> str:
         """
@@ -28,12 +29,21 @@ class Persona:
         """
         self.history.append({"role": "user", "content": user_input})
 
+        # Use a copy of the history for the API call to prevent unexpected mutations
+        messages_for_api = self.history.copy()
+
         response = ollama.chat(
             model="llama3.1:8b-instruct-q4_0",
-            messages=self.history.copy()
+            messages=messages_for_api
         )
 
         assistant_response = response['message']['content']
         self.history.append({"role": "assistant", "content": assistant_response})
 
         return assistant_response
+
+    def reset_history(self):
+        """
+        Resets the conversation history to just the initial system prompt.
+        """
+        self.history = [{"role": "system", "content": self.system_prompt}]

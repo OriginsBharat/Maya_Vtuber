@@ -1,10 +1,12 @@
-from personas.persona import Persona
+from maya_ai.persona import Persona
 import os
+import sys
 
 def load_prompt(file_path: str) -> str:
     """Loads a prompt from a text file."""
     if not os.path.exists(file_path):
-        raise FileNotFoundError(f"Prompt file not found at: {file_path}")
+        print(f"Error: Prompt file not found at: {file_path}", file=sys.stderr)
+        sys.exit(1)
     with open(file_path, 'r', encoding='utf-8') as f:
         return f.read()
 
@@ -16,8 +18,8 @@ def main():
 
     try:
         # Define paths for the persona prompts
-        sarjana_prompt_path = "prompts/sarjana.txt"
-        durjana_prompt_path = "prompts/durjana.txt"
+        sarjana_prompt_path = "maya_ai/prompts/sarjana.txt"
+        durjana_prompt_path = "maya_ai/prompts/durjana.txt"
 
         # Load the prompts from the files
         sarjana_prompt = load_prompt(sarjana_prompt_path)
@@ -38,9 +40,6 @@ def main():
                 break
 
             # --- Conversation Loop ---
-            # This is a simple turn-by-turn implementation.
-            # We will start with Sarjana's reaction, then feed it to Durjana.
-
             print("-" * 30)
             print(f"Reacting to: {meme_description}")
             print("-" * 30)
@@ -56,15 +55,14 @@ def main():
             print(f"Durjana: {durjana_response}")
 
             # Reset history for the next meme to avoid context bleed
-            sarjana.history = [{"role": "system", "content": sarjana.system_prompt}]
-            durjana.history = [{"role": "system", "content": durjana.system_prompt}]
+            sarjana.reset_history()
+            durjana.reset_history()
 
             print("-" * 30)
 
-    except FileNotFoundError as e:
-        print(f"Error: {e}")
     except Exception as e:
-        print(f"An unexpected error occurred: {e}")
+        print(f"An unexpected error occurred: {e}", file=sys.stderr)
+        sys.exit(1)
 
 if __name__ == "__main__":
     main()
