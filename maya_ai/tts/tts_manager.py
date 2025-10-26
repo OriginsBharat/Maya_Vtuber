@@ -1,81 +1,89 @@
-from pathlib import Path
+import os
+import sys
 import torch
-# We will need to add 'indextts' to our dependencies later.
-# For now, we assume it's installed in the environment.
-import simpleaudio as sa # A simple library for playing audio
+import soundfile as sf
+
+# --- HACK: Add the vendor directory to the Python path ---
+# This is necessary because the index-tts project is not a standard package.
+# We need to do this to be able to import its modules.
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..', 'vendor', 'index-tts'))
+# --- END HACK ---
+
+from indextts.infer_v2 import IndexTTS2
 
 class TTSManager:
     """
-    Manages Text-to-Speech generation using the IndexTTS library.
+    Manages Text-to-Speech generation using the Index TTS model.
     """
-    def __init__(self, cfg_path: str, model_dir: str, use_fp16: bool = True):
+    def __init__(self):
         """
-        Initializes the TTS model.
+        Initializes the TTS Manager and loads the Index TTS model.
+        """
+        self.model = None
+        self.load_model()
 
-        Args:
-            cfg_path: Path to the IndexTTS config.yaml file.
-            model_dir: Path to the directory containing the IndexTTS model checkpoints.
-            use_fp16: Whether to use half-precision for faster inference.
+    def load_model(self):
         """
-        print("🔊 Initializing TTS Manager...")
+        Loads the Index TTS model from the vendor directory.
+        """
         try:
-            from indextts.infer_v2 import IndexTTS2
-        except ImportError:
-            raise ImportError(
-                "The 'indextts' library is not installed. "
-                "Please follow the manual installation instructions from its GitHub repository."
+            # Determine if a CUDA-enabled GPU is available
+            use_fp16 = torch.cuda.is_available()
+
+            # Configuration for the model, pointing to the downloaded checkpoints
+            self.model = IndexTTS2(
+                cfg_path="vendor/index-tts/checkpoints/config.yaml",
+                model_dir="vendor/index-tts/checkpoints",
+                use_fp16=use_fp16,  # Use half-precision if a GPU is available
+                use_cuda_kernel=torch.cuda.is_available(),
+                use_deepspeed=False # Disabled for Windows compatibility
             )
-
-        if not Path(model_dir).exists() or not Path(cfg_path).exists():
-            raise FileNotFoundError(
-                "TTS model directory or config not found. "
-                "Please ensure you have downloaded the IndexTTS models into a 'checkpoints' directory."
-            )
-
-        self.tts_model = IndexTTS2(
-            cfg_path=cfg_path,
-            model_dir=model_dir,
-            use_fp16=use_fp16,
-            use_cuda_kernel=torch.cuda.is_available(),
-            use_deepspeed=False # Deepspeed can be complex to set up
-        )
-        print("✅ TTS Model loaded.")
-
-    def speak(self, text: str, voice_prompt_path: str, output_path: str = "output.wav", language: str = 'en'):
-        """
-        Generates speech from text using a voice prompt and plays it.
-
-        Args:
-            text: The text to be spoken.
-            voice_prompt_path: Path to the .wav file to be used for voice cloning.
-            output_path: The path to save the generated audio file.
-            language: The language of the text (e.g., 'en', 'hi', 'zh-cn').
-        """
-        print(f"Synthesizing speech for: '{text}'")
-
-        # Generate the audio file
-        self.tts_model.infer(
-            spk_audio_prompt=voice_prompt_path,
-            text=text,
-            output_path=output_path,
-            verbose=False # Keep the console clean
-        )
-
-        print(f"Audio saved to {output_path}. Now playing...")
-
-        # Play the generated audio file
-        self._play_audio(output_path)
-
-        print("Finished playing audio.")
-
-    def _play_audio(self, file_path: str):
-        """Plays a .wav file."""
-        try:
-            wave_obj = sa.WaveObject.from_wave_file(file_path)
-            play_obj = wave_obj.play()
-            play_obj.wait_done()  # Wait until sound has finished playing
+            print("Index TTS model loaded successfully.")
         except Exception as e:
-            print(f"🚨 Error playing audio: {e}")
-            print("🚨 Please ensure 'ffmpeg' is installed on your system if you see format errors.")
-            print("🚨 On Debian/Ubuntu: sudo apt-get install ffmpeg")
-            print("🚨 On MacOS (with Homebrew): brew install ffmpeg")
+            print(f"Error loading Index TTS model: {e}")
+            self.model = None
+
+    def speak(self, text: str, voice_reference_path: str, output_path: str = "output.wav"):
+        """
+        Generates speech from text using a reference voice.
+
+        Args:
+            text: The text to be converted to speech.
+            voice_reference_path: Path to a .wav file to be used as a voice reference.
+            output_path: The path to save the generated audio file.
+        """
+        if self.model is None:
+            print("TTS model not loaded. Cannot generate speech.")
+            return
+
+        try:
+            self.model.infer(
+                spk_audio_prompt=voice_reference_path,
+                text=text,
+                output_path=output_path,
+                verbose=True
+            )
+            print(f"Speech generated and saved to {output_path}")
+        except Exception as e:
+            print(f"Error during TTS generation: {e}")
+
+# Example usage (for testing)
+if __name__ == '__main__':
+    # We need some dummy voice references to test with.
+    # In the real application, these will be the voices for Sarjana and Durjana.
+    if not os.path.exists("sarjana_ref.wav"):
+        print("Creating dummy voice reference for Sarjana.")
+        # Create a silent 1-second wav file
+        sf.write("sarjana_ref.wav", [0]*16000, 16000)
+
+    if not os.path.exists("durjana_ref.wav"):
+        print("Creating dummy voice reference for Durjana.")
+        sf.write("durjana_ref.wav", [0]*16000, 16000)
+
+    tts_manager = TTSManager()
+    if tts_manager.model:
+        print("\n--- Testing Sarjana's Voice ---")
+        tts_manager.speak("Hello, I am Sarjana. It is a pleasure to meet you.", "sarjana_ref.wav", "sarjana_test.wav")
+
+        print("\n--- Testing Durjana's Voice ---")
+        tts_manager.speak("Hey, I'm Durjana. What's up?", "durjana_ref.wav", "durjana_test.wav")
