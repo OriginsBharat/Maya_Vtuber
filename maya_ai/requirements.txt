@@ -1,17 +1,20 @@
 # Core Project Dependencies
 ollama
-gradio==5.45.0 # Pinned to match index-tts
-chromadb
+gradio==5.45.0
+# chromadb # No longer needed
 sentence-transformers
 soundfile
 requests
 beautifulsoup4
 pytchat
 pyvts
-praw # For Reddit
-tweepy # For Twitter
+praw
+tweepy
+supabase
+pinecone
 
 # IndexTTS Pinned Dependencies
+# ... (rest of the file is the same)
 accelerate==1.8.1
 cn2an==0.5.22
 cython==3.0.7
@@ -40,4 +43,4 @@ torch==2.8.0
 torchaudio==2.8.0
 tqdm>=4.67.1
 transformers==4.52.1
-WeTextProcessing # Assuming a Linux environment based on the tool's OS
+WeTextProcessing

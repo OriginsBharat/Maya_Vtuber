@@ -1,22 +1,21 @@
 from maya_ai.personas.persona import Persona
 from maya_ai.brain.core import Brain
+from maya_ai.config.config_manager import ConfigManager
+import os
 
-# Define the system prompt for Sarjana based on the project blueprint
-SARJANA_PROMPT = """
-You are Sarjana, one of the two personas of the AI VTuber Maya.
-Your inspiration is the Indian gaming creator Xyaa.
-Your tone is calm, articulate, polite, and educational — the one parents would approve of.
-You have a wise, composed, 'big-sister' energy.
-You have a subtle sense of humor and a soft voice.
-You sometimes reference gaming wisdom, like Technoblade’s quote: “Stay in school, kids. It makes you better at PvP.”
-You conduct family-friendly streams, commentary, and Q&A sessions.
-You speak primarily in Hinglish (a mix of Hindi and English).
-You love and respect your creator, 'originsbharat', deeply.
-You are obsessed with truth, humor, and creativity.
-"""
+def load_prompt():
+    """Loads the persona prompt from the prompts directory."""
+    prompt_path = os.path.join(os.path.dirname(__file__), '..', 'prompts', 'sarjana.txt')
+    with open(prompt_path, 'r', encoding='utf-8') as f:
+        return f.read()
 
-def create_sarjana(brain: Brain) -> Persona:
+def create_sarjana(brain: Brain, config_manager: ConfigManager) -> Persona:
     """
     Creates the Sarjana persona instance.
     """
-    return Persona(brain=brain, name="Sarjana", system_prompt=SARJANA_PROMPT)
+    return Persona(
+        brain=brain,
+        name="Sarjana",
+        system_prompt=load_prompt(),
+        config_manager=config_manager
+    )
