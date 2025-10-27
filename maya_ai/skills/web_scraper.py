@@ -1,54 +1,45 @@
-import requests
-from bs4 import BeautifulSoup
+import praw
+import os
 
-def get_top_reddit_posts(subreddit: str, limit: int = 5) -> list:
+def get_top_reddit_posts(subreddit_name: str, limit: int = 5) -> list:
     """
-    Fetches the titles of the top posts from a given subreddit.
+    Fetches the titles of the top posts from a given subreddit using the Reddit API.
 
     Args:
-        subreddit: The name of the subreddit to scrape.
-        limit: The maximum number of post titles to return.
+        subreddit_name: The name of the subreddit.
+        limit: The number of posts to return.
 
     Returns:
-        A list of the top post titles.
+        A list of post titles, or an error message if it fails.
     """
-    posts = []
     try:
-        url = f"https://old.reddit.com/r/{subreddit}/top/?sort=top&t=day"
-        # Using a more realistic browser User-Agent to avoid being blocked
-        headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-        }
-        response = requests.get(url, headers=headers)
-        response.raise_for_status()
+        # These credentials need to be set as environment variables by the user
+        reddit = praw.Reddit(
+            client_id=os.environ.get("REDDIT_CLIENT_ID", "YOUR_CLIENT_ID"),
+            client_secret=os.environ.get("REDDIT_CLIENT_SECRET", "YOUR_CLIENT_SECRET"),
+            user_agent="MayaAI by u/originsbharat",
+        )
 
-        soup = BeautifulSoup(response.text, 'html.parser')
+        subreddit = reddit.subreddit(subreddit_name)
 
-        post_elements = soup.select('a.title') # Using a more specific CSS selector
+        # Fetch top posts from the last 24 hours
+        top_posts = subreddit.top(time_filter="day", limit=limit)
 
-        for post in post_elements[:limit]:
-            posts.append(post.get_text())
+        return [post.title for post in top_posts]
 
-    except requests.exceptions.RequestException as e:
-        print(f"Error fetching Reddit posts: {e}")
-        return ["I'm having trouble connecting to Reddit right now."]
     except Exception as e:
-        print(f"An unexpected error occurred while scraping Reddit: {e}")
-        return ["Something went wrong while I was checking Reddit."]
-
-    if not posts:
-        return [f"I couldn't find any hot posts on r/{subreddit} today."]
-
-    return posts
+        print(f"An error occurred while fetching from Reddit API: {e}")
+        return [f"I'm having trouble connecting to the Reddit API. The error is: {e}"]
 
 # Example usage (for testing)
 if __name__ == '__main__':
-    print("--- Fetching top 5 posts from r/memes ---")
-    memes = get_top_reddit_posts("memes", 5)
-    for i, meme_title in enumerate(memes):
-        print(f"{i+1}. {meme_title}")
-
-    print("\n--- Fetching top 3 posts from r/worldnews ---")
-    news = get_top_reddit_posts("worldnews", 3)
-    for i, news_title in enumerate(news):
-        print(f"{i+1}. {news_title}")
+    # To run this test, you must set the REDDIT_CLIENT_ID and REDDIT_CLIENT_SECRET
+    # environment variables.
+    if os.environ.get("REDDIT_CLIENT_ID"):
+        print(f"--- Fetching top 5 posts from r/memes ---")
+        memes = get_top_reddit_posts("memes", 5)
+        for i, meme_title in enumerate(memes):
+            print(f"{i+1}. {meme_title}")
+    else:
+        print("Skipping Reddit test because REDDIT_CLIENT_ID is not set.")
+        print("Please set your Reddit API credentials as environment variables to test this.")
