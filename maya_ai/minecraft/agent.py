@@ -12,10 +12,17 @@ class MinecraftAgent:
         self.thread = None
         self.latest_world_state = {}
         self.is_connected = False
-        self.ws_url = "ws://localhost:8080"
+        self.ws_url = None
+        self.host = None
+        self.port = None
+        self.username = None
 
-    def connect(self):
+    def connect(self, host="localhost", port=3000, username="Maya"):
         """Connects to the WebSocket server."""
+        self.host = host
+        self.port = port
+        self.username = username
+        self.ws_url = f"ws://localhost:{port}"
         print("🐍 Python agent attempting to connect to WebSocket bridge...")
         try:
             self.ws = websocket.WebSocketApp(self.ws_url,
@@ -45,6 +52,15 @@ class MinecraftAgent:
     def on_open(self, ws):
         print("✅ Python agent connected to WebSocket bridge.")
         self.is_connected = True
+        connect_command = {
+            "command": "connect",
+            "args": {
+                "host": self.host,
+                "port": self.port,
+                "username": self.username
+            }
+        }
+        self.send_command(connect_command)
 
     def on_message(self, ws, message):
         """Handles incoming messages from the bot."""

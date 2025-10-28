@@ -2,8 +2,6 @@ import gradio as gr
 from maya_ai.orchestrator import Orchestrator
 from maya_ai.tts.tts_manager import TTSManager
 from maya_ai.vtube.vts_manager import VTSManager
-from maya_ai.skills.web_scraper import get_top_reddit_posts
-from maya_ai.skills.twitter_scraper import get_user_tweets
 import pandas as pd
 import os
 import soundfile as sf
@@ -45,31 +43,35 @@ async def run_full_interaction(input_text, hint_text):
         return error_msg, error_msg, None, None, gr.update(), gr.update()
 
 def run_reddit_wrapper(subreddit):
-    posts = get_top_reddit_posts(subreddit, limit=3)
+    skill = orchestrator.skill_manager.get_skill("Reddit Scraper Skill")
+    posts = skill.perform_action("get_top_posts", subreddit_name=subreddit, limit=3)
     topic = f"Discuss the top posts from r/{subreddit}: {', '.join(posts)}"
     return asyncio.run(run_full_interaction(topic, "Discuss these Reddit posts."))
 
 def run_twitter_wrapper(username):
-    tweets = get_user_tweets(username, limit=3)
+    skill = orchestrator.skill_manager.get_skill("Twitter Scraper Skill")
+    tweets = skill.perform_action("get_user_tweets", username=username, limit=3)
     topic = f"Discuss the latest tweets from @{username}: {'; '.join(tweets)}"
     return asyncio.run(run_full_interaction(topic, "Discuss these tweets."))
 
 # --- Memory Management Logic ---
 def get_memory_df(name):
     p = orchestrator.sarjana if name == "Sarjana" else orchestrator.durjana
-    d = p.memory.collection.get()
-    return pd.DataFrame({"ID": d.get('ids', []), "Memory": d.get('documents', [])})
+    memories = p.memory.get_all_memories()
+    if not memories:
+        return pd.DataFrame({"ID": [], "Memory": []})
+    return pd.DataFrame({"ID": [m['id'] for m in memories], "Memory": [m['content'] for m in memories]})
 
 def add_mem(name, txt):
     if not txt: return get_memory_df(name)
     p = orchestrator.sarjana if name == "Sarjana" else orchestrator.durjana
-    p.memory.add_memory(txt, str(pd.Timestamp.now()))
+    p.memory.add(txt)
     return get_memory_df(name)
 
 def del_mem(name, mid):
     if not mid: return get_memory_df(name)
     p = orchestrator.sarjana if name == "Sarjana" else orchestrator.durjana
-    p.memory.delete_memory(mid)
+    p.memory.delete([mid])
     return get_memory_df(name)
 
 # --- UI Definition ---
