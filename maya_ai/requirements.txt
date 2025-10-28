@@ -17,7 +17,9 @@ pillow
 pytesseract
 websocket-client
 moviepy
-supertools
+python-dotenv
+googlesearch-python
+javascript
 
 # IndexTTS Pinned Dependencies
 # ... (rest of the file is the same)

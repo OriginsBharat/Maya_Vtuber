@@ -1,64 +1,60 @@
-from pinecone import Pinecone, ServerlessSpec
+from pinecone import Pinecone
 from sentence_transformers import SentenceTransformer
 from maya_ai.config.config_manager import ConfigManager
 import uuid
 
 class MemoryManager:
     """
-    Manages the long-term, persistent memory for a persona using Pinecone.
+    Manages the long-term memory for a persona using Pinecone.
     """
     def __init__(self, persona_name: str, config_manager: ConfigManager):
-        """
-        Initializes the MemoryManager and connects to Pinecone.
-        """
         self.persona_name = persona_name
         self.config_manager = config_manager
 
-        # Initialize Pinecone
         self.api_key = self.config_manager.get_key("PINECONE_API_KEY")
-        if not self.api_key:
-            raise ValueError("PINECONE_API_KEY not found in configuration.")
+        if not self.api_key or self.api_key == "dummy_key":
+            print("Warning: PINECONE_API_KEY is not valid. MemoryManager will be disabled.")
+            self.pc = None
+            self.index = None
+            return
 
         self.pc = Pinecone(api_key=self.api_key)
-
-        # Load the sentence transformer model
-        self.model = SentenceTransformer('all-MiniLM-L6-v2')
-        self.dimension = self.model.get_sentence_embedding_dimension()
-
-        # Create or connect to the Pinecone index for this persona
         self.index_name = f"maya-memory-{self.persona_name.lower()}"
+
         if self.index_name not in self.pc.list_indexes().names():
             self.pc.create_index(
                 name=self.index_name,
-                dimension=self.dimension,
-                metric='cosine',
-                spec=ServerlessSpec(cloud='aws', region='us-east-1') # Use serverless for the free tier
+                dimension=384,
+                metric='cosine'
             )
         self.index = self.pc.Index(self.index_name)
+        self.encoder = SentenceTransformer('all-MiniLM-L6-v2')
 
-    def add_memory(self, memory_text: str, memory_id: str = None):
-        """
-        Adds a new memory to the persona's Pinecone index.
-        """
-        if not memory_id:
-            memory_id = str(uuid.uuid4())
+    def add(self, content: str):
+        if not self.index:
+            return
 
-        embedding = self.model.encode(memory_text).tolist()
-        self.index.upsert(vectors=[{'id': memory_id, 'values': embedding, 'metadata': {'text': memory_text}}])
+        vector = self.encoder.encode([content]).tolist()
+        self.index.upsert(vectors=[(str(uuid.uuid4()), vector, {"content": content})])
 
-    def recall_memories(self, query_text: str, num_memories: int = 5) -> list:
-        """
-        Recalls the most relevant memories from Pinecone.
-        """
-        query_embedding = self.model.encode(query_text).tolist()
-        results = self.index.query(vector=query_embedding, top_k=num_memories, include_metadata=True)
+    def search(self, query: str, top_k: int = 5) -> list:
+        if not self.index:
+            return []
 
-        return [match['metadata']['text'] for match in results['matches']]
+        query_vector = self.encoder.encode([query]).tolist()
+        results = self.index.query(vector=query_vector, top_k=top_k, include_metadata=True)
+        return [match['metadata']['content'] for match in results['matches']]
 
-    def delete_memory(self, memory_id: str):
-        """
-        Deletes a memory from the Pinecone index.
-        """
-        self.index.delete(ids=[memory_id])
+    def get_all_memories(self) -> list:
+        if not self.index:
+            return []
 
-# Example usage will be part of the main application.
+        # This is a hack to get all vectors. In a real application, you'd want to paginate.
+        results = self.index.query(vector=[0]*384, top_k=1000, include_metadata=True)
+        return [{"id": match['id'], "content": match['metadata']['content']} for match in results['matches']]
+
+    def delete(self, ids: list):
+        if not self.index:
+            return
+
+        self.index.delete(ids=ids)

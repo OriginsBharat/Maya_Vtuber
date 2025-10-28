@@ -52,8 +52,10 @@ class Brain:
 You are an AI playing Minecraft. Your goal is to: {goal}.
 Based on the current world state, decide the next action to take.
 The world state is: {world_state}.
-Respond with a JSON object representing the action.
-Example: {{"command": "move", "args": {{"x": 10, "y": 64, "z": -5}}}}
+Your response must be a JSON object with two keys: "command" and "args".
+The "command" must be a valid mineflayer bot command (e.g., "chat", "equip", "toss", "move").
+The "args" must be a list of arguments for the command.
+Example: {{"command": "chat", "args": ["Hello, world!"]}}
 """
         messages = [{"role": "system", "content": system_prompt}]
         try:
