@@ -1,11 +1,12 @@
 import re
+from loguru import logger
 
 class Storyboarder:
     """
     Parses a structured script from the brain into a list of scenes.
     """
     def __init__(self):
-        print("🎬 Storyboarder initialized.")
+        logger.info("🎬 Storyboarder initialized.")
 
     def parse_script(self, script_text: str) -> list:
         """
@@ -20,18 +21,15 @@ class Storyboarder:
         """
         scenes = []
         try:
-            # Split the script into scenes using the [SCENE_START] and [SCENE_END] tags
             scene_blocks = re.findall(r'\[SCENE_START\](.*?)\[SCENE_END\]', script_text, re.DOTALL)
 
             for block in scene_blocks:
                 scene_data = {}
 
-                # Extract the scene description
                 desc_match = re.search(r'SCENE_DESCRIPTION:\s*(.*)', block, re.IGNORECASE)
                 if desc_match:
                     scene_data['description'] = desc_match.group(1).strip()
 
-                # Extract dialogue for each character
                 dialogue = {}
                 dialogue_matches = re.findall(r'(\w+):\s*(.*)', block)
                 for char, line in dialogue_matches:
@@ -41,9 +39,9 @@ class Storyboarder:
                 scene_data['dialogue'] = dialogue
                 scenes.append(scene_data)
 
-            print(f"✅ Successfully parsed {len(scenes)} scenes.")
+            logger.info(f"✅ Successfully parsed {len(scenes)} scenes.")
             return scenes
 
         except Exception as e:
-            print(f"🚨 Error parsing script: {e}")
+            logger.error(f"🚨 Error parsing script: {e}", exc_info=True)
             return []

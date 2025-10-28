@@ -1,5 +1,6 @@
 from googlesearch import search
 from maya_ai.skills.skill import Skill
+from loguru import logger
 
 class WebSearchSkill(Skill):
     def get_name(self) -> str:
@@ -18,16 +19,21 @@ class WebSearchSkill(Skill):
         if action_name == "search_web":
             query = kwargs.get("query")
             if not query:
+                logger.error("query is required for search_web action.")
                 return "Error: query is required."
             return self._search_web(query)
+        logger.warning(f"Unknown action for Web Search Skill: {action_name}")
         return f"Unknown action: {action_name}"
 
     def _search_web(self, query: str) -> str:
         try:
+            logger.info(f"Searching web for: '{query}'")
             results = search(query, num_results=5)
+            logger.info("Web search successful.")
             return "\n".join(results)
         except Exception as e:
+            logger.error(f"Error performing web search: {e}", exc_info=True)
             return f"Error performing web search: {e}"
 
-def create_skill(config_manager):
+def create_skill():
     return WebSearchSkill()

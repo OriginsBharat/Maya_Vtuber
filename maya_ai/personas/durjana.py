@@ -1,21 +1,21 @@
 from maya_ai.personas.persona import Persona
 from maya_ai.brain.core import Brain
-from maya_ai.config.config_manager import ConfigManager
 import os
+from maya_ai.config.config_loader import get_config
 
 def load_prompt():
-    """Loads the persona prompt from the prompts directory."""
-    prompt_path = os.path.join(os.path.dirname(__file__), '..', 'prompts', 'durjana.txt')
+    """Loads the persona prompt from the path specified in the config."""
+    config = get_config()
+    prompt_path = config.get('personas', 'durjana', {}).get('prompt_file')
     with open(prompt_path, 'r', encoding='utf-8') as f:
         return f.read()
 
-def create_durjana(brain: Brain, config_manager: ConfigManager) -> Persona:
+def create_durjana(brain: Brain) -> Persona:
     """
     Creates the Durjana persona instance.
     """
     return Persona(
         brain=brain,
         name="Durjana",
-        system_prompt=load_prompt(),
-        config_manager=config_manager
+        system_prompt=load_prompt()
     )

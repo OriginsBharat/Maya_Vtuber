@@ -1,0 +1,46 @@
+brain:
+  model: "llama3.1:8b"
+  temperature: 0.8
+  max_tokens: 2000
+
+tts:
+  model_dir: "vendor/index-tts/checkpoints"
+  config_path: "vendor/index-tts/checkpoints/config.yaml"
+  use_fp16: true
+  voice_references:
+    sarjana: "voices/sarjana_ref.wav"
+    durjana: "voices/durjana_ref.wav"
+
+memory:
+  embedding_model: "all-MiniLM-L6-v2"
+  recall_top_k: 5
+  pinecone_index_prefix: "maya-memory"
+
+personas:
+  sarjana:
+    prompt_file: "maya_ai/prompts/sarjana.txt"
+  durjana:
+    prompt_file: "maya_ai/prompts/durjana.txt"
+
+skills:
+  reddit:
+    default_limit: 5
+  twitter:
+    default_limit: 5
+  minecraft:
+    websocket_port: 8080
+
+ui:
+  gradio:
+    port: 7861
+    share: false
+
+logging:
+  level: "INFO"
+  file: "logs/maya.log"
+
+paths:
+  voices: "voices/"
+  temp: "temp/"
+  output: "output/"
+  logs: "logs/"

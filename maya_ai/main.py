@@ -1,5 +1,4 @@
 import gradio as gr
-import gradio as gr
 from maya_ai.orchestrator import Orchestrator
 from maya_ai.gaming_orchestrator import GamingOrchestrator
 from maya_ai.tts.tts_manager import TTSManager
@@ -9,17 +8,30 @@ import os
 import soundfile as sf
 import asyncio
 import threading
+from maya_ai.config.config_loader import get_config
+from loguru import logger
+import numpy as np
 
 # --- Initialization ---
+config = get_config()
+logger.add(
+    config.get('logging', 'file'),
+    level=config.get('logging', 'level'),
+    rotation="10 MB",
+    retention="5 days"
+)
+
 orchestrator = Orchestrator()
 gaming_orchestrator = GamingOrchestrator(orchestrator.brain, orchestrator.skill_manager)
 mc_skill = orchestrator.skill_manager.get_skill("Minecraft Skill")
 tts_manager = TTSManager()
 vts_manager = VTSManager()
 
-SARJANA_REF, DURJANA_REF = "sarjana_ref.wav", "durjana_ref.wav"
-if not os.path.exists(SARJANA_REF): sf.write(SARJANA_REF, [0]*16000, 16000)
-if not os.path.exists(DURJANA_REF): sf.write(DURJANA_REF, [0]*16000, 16000)
+SARJANA_REF = config.get('tts', 'voice_references', {}).get('sarjana', 'voices/sarjana_ref.wav')
+DURJANA_REF = config.get('tts', 'voice_references', {}).get('durjana', 'voices/durjana_ref.wav')
+
+if not os.path.exists(SARJANA_REF): sf.write(SARJANA_REF, np.zeros(16000, dtype=np.int16), 16000)
+if not os.path.exists(DURJANA_REF): sf.write(DURJANA_REF, np.zeros(16000, dtype=np.int16), 16000)
 
 # --- Main Interaction Logic ---
 async def run_full_interaction(input_text, hint_text):
@@ -44,6 +56,7 @@ async def run_full_interaction(input_text, hint_text):
         return sarjana_resp, durjana_resp, s_path, d_path, get_memory_df("Sarjana"), get_memory_df("Durjana")
 
     except Exception as e:
+        logger.error(f"Error during interaction: {e}", exc_info=True)
         error_msg = f"Error during interaction: {e}"
         return error_msg, error_msg, None, None, gr.update(), gr.update()
 
@@ -70,7 +83,7 @@ def get_memory_df(name):
 def add_mem(name, txt):
     if not txt: return get_memory_df(name)
     p = orchestrator.sarjana if name == "Sarjana" else orchestrator.durjana
-    p.memory.add(txt)
+    p.memory.add_fact(txt)
     return get_memory_df(name)
 
 def del_mem(name, mid):
@@ -82,27 +95,20 @@ def del_mem(name, mid):
 # --- Minecraft Control Logic ---
 def start_mc_bot():
     if mc_skill:
-        return mc_skill.perform_action("start_bot")
-    return "Minecraft skill not found."
-
-def connect_mc_bot(uri):
-    if mc_skill:
-        return mc_skill.perform_action("connect", uri=uri)
+        return mc_skill.perform_action("connect", host='localhost', port=25565, username='Maya')
     return "Minecraft skill not found."
 
 def stop_mc_bot():
     if mc_skill:
         if gaming_orchestrator.is_running:
             gaming_orchestrator.stop_autonomous_loop()
-        mc_skill.perform_action("disconnect")
-        return mc_skill.perform_action("stop_bot")
+        return mc_skill.perform_action("disconnect")
     return "Minecraft skill not found."
 
 def start_gaming_loop(goal):
     if not gaming_orchestrator.is_running:
-        # Check if connected
-        if not mc_skill or not mc_skill.ws:
-            return "Bot is not connected. Please connect on the 'Setup' tab first."
+        if not mc_skill or not mc_skill.bot:
+            return "Bot is not connected. Please connect first."
 
         thread = threading.Thread(target=gaming_orchestrator.start_autonomous_loop, args=(goal,))
         thread.daemon = True
@@ -123,59 +129,54 @@ with gr.Blocks() as iface:
 
     with gr.Tabs():
         with gr.Tab("Manual Interaction"):
-            mi_input = gr.Textbox(l="Input")
-            mi_hint = gr.Textbox(l="Hint")
+            mi_input = gr.Textbox(label="Input")
+            mi_hint = gr.Textbox(label="Hint")
             mi_btn = gr.Button("Run")
         with gr.Tab("Reddit"):
-            r_input = gr.Textbox(l="Subreddit")
+            r_input = gr.Textbox(label="Subreddit")
             r_btn = gr.Button("Run")
         with gr.Tab("Twitter"):
-            t_input = gr.Textbox(l="Username")
+            t_input = gr.Textbox(label="Username")
             t_btn = gr.Button("Run")
+        with gr.Tab("Gaming"):
+            with gr.Tabs():
+                with gr.TabItem("Setup"):
+                    setup_status = gr.Textbox(label="Status", interactive=False)
+                    with gr.Row():
+                        start_bot_btn = gr.Button("Connect to Server")
+                        stop_bot_btn = gr.Button("Disconnect")
+                with gr.TabItem("Autonomous Control"):
+                    loop_status = gr.Textbox(label="Status", interactive=False)
+                    goal_input = gr.Textbox(label="Goal for Maya")
+                    with gr.Row():
+                        start_loop_btn = gr.Button("Start Autonomous Loop")
+                        stop_loop_btn = gr.Button("Stop Autonomous Loop")
         with gr.Tab("Memory"):
             with gr.Row():
                 with gr.Column():
                     gr.Markdown("### Sarjana")
-                    s_mem_df = gr.DataFrame(get_memory_df("Sarjana"), h=["ID", "Memory"])
-                    s_add_txt = gr.Textbox(l="New Memory")
+                    s_mem_df = gr.DataFrame(get_memory_df("Sarjana"), headers=["ID", "Memory"], interactive=False)
+                    s_add_txt = gr.Textbox(label="New Memory")
                     s_add_btn = gr.Button("Add")
-                    s_del_id = gr.Textbox(l="ID to Delete")
+                    s_del_id = gr.Textbox(label="ID to Delete")
                     s_del_btn = gr.Button("Delete")
                 with gr.Column():
                     gr.Markdown("### Durjana")
-                    d_mem_df = gr.DataFrame(get_memory_df("Durjana"), h=["ID", "Memory"])
-                    d_add_txt = gr.Textbox(l="New Memory")
+                    d_mem_df = gr.DataFrame(get_memory_df("Durjana"), headers=["ID", "Memory"], interactive=False)
+                    d_add_txt = gr.Textbox(label="New Memory")
                     d_add_btn = gr.Button("Add")
-                    d_del_id = gr.Textbox(l="ID to Delete")
+                    d_del_id = gr.Textbox(label="ID to Delete")
                     d_del_btn = gr.Button("Delete")
 
-    s_out_txt = gr.Textbox(l="Sarjana's Response")
-    s_out_audio = gr.Audio(l="Sarjana's Voice", type="filepath")
-    d_out_txt = gr.Textbox(l="Durjana's Response")
-    d_out_audio = gr.Audio(l="Durjana's Voice", type="filepath")
-
-    with gr.Tab("Gaming"):
-        with gr.Tabs():
-            with gr.TabItem("Setup"):
-                setup_status = gr.Textbox(label="Status", interactive=False)
-                with gr.Row():
-                    start_bot_btn = gr.Button("1. Start Bot Process")
-                    stop_bot_btn = gr.Button("Stop Bot Process")
-                with gr.Row():
-                    ws_uri_input = gr.Textbox(label="WebSocket URI", value="ws://localhost:3000")
-                    connect_btn = gr.Button("2. Connect to Bot")
-
-            with gr.TabItem("Autonomous Control"):
-                loop_status = gr.Textbox(label="Status", interactive=False)
-                goal_input = gr.Textbox(label="Goal for Maya")
-                with gr.Row():
-                    start_loop_btn = gr.Button("Start Autonomous Loop")
-                    stop_loop_btn = gr.Button("Stop Autonomous Loop")
+    s_out_txt = gr.Textbox(label="Sarjana's Response")
+    s_out_audio = gr.Audio(label="Sarjana's Voice", type="filepath")
+    d_out_txt = gr.Textbox(label="Durjana's Response")
+    d_out_audio = gr.Audio(label="Durjana's Voice", type="filepath")
 
     # --- UI Event Handlers ---
-    mi_btn.click(lambda a, b: asyncio.run(run_full_interaction(a, b)), [mi_input, mi_hint], [s_out_txt, d_out_txt, s_out_audio, d_out_audio, s_mem_df, d_mem_df])
-    r_btn.click(run_reddit_wrapper, [r_input], [s_out_txt, d_out_txt, s_out_audio, d_out_audio, s_mem_df, d_mem_df])
-    t_btn.click(run_twitter_wrapper, [t_input], [s_out_txt, d_out_txt, s_out_audio, d_out_audio, s_mem_df, d_mem_df])
+    mi_btn.click(lambda a, b: asyncio.run(run_full_interaction(a, b)), [mi_input, mi_hint], [s_out_txt, d_out_txt, s_out_audio, d_out_audio, s_mem_df, d_mem_df], show_progress="full")
+    r_btn.click(run_reddit_wrapper, [r_input], [s_out_txt, d_out_txt, s_out_audio, d_out_audio, s_mem_df, d_mem_df], show_progress="full")
+    t_btn.click(run_twitter_wrapper, [t_input], [s_out_txt, d_out_txt, s_out_audio, d_out_audio, s_mem_df, d_mem_df], show_progress="full")
 
     s_add_btn.click(add_mem, [gr.Textbox("Sarjana", visible=False), s_add_txt], [s_mem_df])
     s_del_btn.click(del_mem, [gr.Textbox("Sarjana", visible=False), s_del_id], [s_mem_df])
@@ -183,10 +184,9 @@ with gr.Blocks() as iface:
     d_del_btn.click(del_mem, [gr.Textbox("Durjana", visible=False), d_del_id], [d_mem_df])
 
     start_bot_btn.click(start_mc_bot, outputs=setup_status)
-    connect_btn.click(connect_mc_bot, inputs=ws_uri_input, outputs=setup_status)
     stop_bot_btn.click(stop_mc_bot, outputs=setup_status)
 
     start_loop_btn.click(start_gaming_loop, inputs=goal_input, outputs=loop_status)
     stop_loop_btn.click(stop_gaming_loop, outputs=loop_status)
 
-iface.launch()
+iface.launch(server_port=config.get('ui', 'gradio', {}).get('port', 7860), share=config.get('ui', 'gradio', {}).get('share', False))

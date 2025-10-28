@@ -2,14 +2,11 @@ import os
 import sys
 import torch
 import soundfile as sf
+from loguru import logger
+import time
 
-# --- HACK: Add the vendor directory to the Python path ---
-# This is necessary because the index-tts project is not a standard package.
-# We need to do this to be able to import its modules.
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..', 'vendor', 'index-tts'))
-# --- END HACK ---
-
-from indextts.infer_v2 import IndexTTS2
+from indextts.infer import IndexTTS
+from maya_ai.config.config_loader import get_config
 
 class TTSManager:
     """
@@ -20,40 +17,39 @@ class TTSManager:
         Initializes the TTS Manager and loads the Index TTS model.
         """
         self.model = None
-        self.load_model()
+        self.config = get_config()
+        self.load_model_with_retry()
 
-    def load_model(self):
+    def load_model_with_retry(self, max_retries=3, delay=5):
         """
-        Loads the Index TTS model from the vendor directory.
+        Loads the Index TTS model with retry logic.
         """
-        try:
-            # Determine if a CUDA-enabled GPU is available
-            use_fp16 = torch.cuda.is_available()
+        for attempt in range(max_retries):
+            try:
+                use_fp16 = self.config.get('tts', 'use_fp16', default=torch.cuda.is_available())
 
-            # Configuration for the model, pointing to the downloaded checkpoints
-            self.model = IndexTTS2(
-                cfg_path="vendor/index-tts/checkpoints/config.yaml",
-                model_dir="vendor/index-tts/checkpoints",
-                use_fp16=use_fp16,  # Use half-precision if a GPU is available
-                use_cuda_kernel=torch.cuda.is_available(),
-                use_deepspeed=False # Disabled for Windows compatibility
-            )
-            print("Index TTS model loaded successfully.")
-        except Exception as e:
-            print(f"Error loading Index TTS model: {e}")
-            self.model = None
+                self.model = IndexTTS(
+                    cfg_path=self.config.get('tts', 'config_path'),
+                    model_dir=self.config.get('tts', 'model_dir'),
+                    use_fp16=use_fp16
+                )
+                logger.info("Index TTS model loaded successfully.")
+                return
+            except Exception as e:
+                logger.error(f"Error loading Index TTS model (attempt {attempt + 1}/{max_retries}): {e}", exc_info=True)
+                if attempt < max_retries - 1:
+                    logger.info(f"Retrying in {delay} seconds...")
+                    time.sleep(delay)
+                else:
+                    logger.error("Failed to load Index TTS model after multiple retries.")
+                    self.model = None
 
-    def speak(self, text: str, voice_reference_path: str, output_path: str = "output.wav"):
+    def speak(self, text: str, voice_reference_path: str, output_path: str = "output.wav", language: str = "en"):
         """
         Generates speech from text using a reference voice.
-
-        Args:
-            text: The text to be converted to speech.
-            voice_reference_path: Path to a .wav file to be used as a voice reference.
-            output_path: The path to save the generated audio file.
         """
         if self.model is None:
-            print("TTS model not loaded. Cannot generate speech.")
+            logger.error("TTS model not loaded. Cannot generate speech.")
             return
 
         try:
@@ -61,29 +57,9 @@ class TTSManager:
                 spk_audio_prompt=voice_reference_path,
                 text=text,
                 output_path=output_path,
+                language=language,
                 verbose=True
             )
-            print(f"Speech generated and saved to {output_path}")
+            logger.info(f"Speech generated and saved to {output_path}")
         except Exception as e:
-            print(f"Error during TTS generation: {e}")
-
-# Example usage (for testing)
-if __name__ == '__main__':
-    # We need some dummy voice references to test with.
-    # In the real application, these will be the voices for Sarjana and Durjana.
-    if not os.path.exists("sarjana_ref.wav"):
-        print("Creating dummy voice reference for Sarjana.")
-        # Create a silent 1-second wav file
-        sf.write("sarjana_ref.wav", [0]*16000, 16000)
-
-    if not os.path.exists("durjana_ref.wav"):
-        print("Creating dummy voice reference for Durjana.")
-        sf.write("durjana_ref.wav", [0]*16000, 16000)
-
-    tts_manager = TTSManager()
-    if tts_manager.model:
-        print("\n--- Testing Sarjana's Voice ---")
-        tts_manager.speak("Hello, I am Sarjana. It is a pleasure to meet you.", "sarjana_ref.wav", "sarjana_test.wav")
-
-        print("\n--- Testing Durjana's Voice ---")
-        tts_manager.speak("Hey, I'm Durjana. What's up?", "durjana_ref.wav", "durjana_test.wav")
+            logger.error(f"Error during TTS generation: {e}", exc_info=True)

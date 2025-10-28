@@ -4,6 +4,7 @@ from googleapiclient.discovery import build
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
 from googleapiclient.http import MediaFileUpload
+from loguru import logger
 
 class YouTubeUploader:
     """
@@ -54,7 +55,7 @@ class YouTubeUploader:
             tags: A list of tags for the video.
         """
         if not os.path.exists(file_path):
-            print(f"🚨 Video file not found: {file_path}")
+            logger.error(f"Video file not found: {file_path}")
             return None
 
         try:
@@ -63,7 +64,7 @@ class YouTubeUploader:
             if not self.youtube:
                 return None
 
-            print(f"⬆️ Uploading '{file_path}' to YouTube...")
+            logger.info(f"⬆️ Uploading '{file_path}' to YouTube...")
             body = {
                 'snippet': {
                     'title': title,
@@ -88,11 +89,11 @@ class YouTubeUploader:
             while response is None:
                 status, response = request.next_chunk()
                 if status:
-                    print(f"Uploaded {int(status.progress() * 100)}%.")
+                    logger.info(f"Uploaded {int(status.progress() * 100)}%.")
 
-            print(f"✅ Video uploaded successfully! Video ID: {response.get('id')}")
+            logger.success(f"✅ Video uploaded successfully! Video ID: {response.get('id')}")
             return response.get('id')
 
         except Exception as e:
-            print(f"🚨 An error occurred during YouTube upload: {e}")
+            logger.error(f"An error occurred during YouTube upload: {e}", exc_info=True)
             return None

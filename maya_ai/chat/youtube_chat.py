@@ -1,6 +1,7 @@
 import pytchat
 import threading
 import time
+from loguru import logger
 
 class YouTubeChatListener:
     """
@@ -38,7 +39,7 @@ class YouTubeChatListener:
             self._thread = threading.Thread(target=self._run)
             self._thread.daemon = True
             self._thread.start()
-            print(f"Started listening to chat for video ID: {self.video_id}")
+            logger.info(f"Started listening to chat for video ID: {self.video_id}")
 
     def stop(self):
         """
@@ -47,7 +48,7 @@ class YouTubeChatListener:
         self._is_running = False
         if self._thread:
             self._thread.join()
-        print("Stopped listening to chat.")
+        logger.info("Stopped listening to chat.")
 
     def get_messages(self) -> list:
         """

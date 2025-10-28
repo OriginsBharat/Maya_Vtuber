@@ -2,6 +2,7 @@ import os
 import praw
 import requests
 from dotenv import load_dotenv
+from loguru import logger
 
 # Load environment variables from .env file
 # We will need to add REDDIT_CLIENT_ID, REDDIT_CLIENT_SECRET, and REDDIT_USER_AGENT
@@ -17,7 +18,7 @@ class WebScraper:
             client_secret=os.getenv("REDDIT_CLIENT_SECRET"),
             user_agent=os.getenv("REDDIT_USER_AGENT"),
         )
-        print("🌐 Web Scraper initialized for Reddit.")
+        logger.info("🌐 Web Scraper initialized for Reddit.")
 
     def find_top_image_post(self, search_term: str) -> dict:
         """
@@ -30,7 +31,7 @@ class WebScraper:
             A dictionary containing the post title, image URL, and post URL,
             or None if no suitable post is found.
         """
-        print(f"Searching for top image post with term: '{search_term}'")
+        logger.info(f"Searching for top image post with term: '{search_term}'")
 
         # Determine if the search term is a subreddit or a keyword
         if search_term.lower().startswith('r/'):
@@ -46,14 +47,14 @@ class WebScraper:
         for post in posts:
             # We want image posts that are not videos and are SFW
             if not post.is_video and not post.over_18 and hasattr(post, 'url') and post.url.endswith(('jpg', 'jpeg', 'png')):
-                print(f"Found suitable post: {post.title}")
+                logger.info(f"Found suitable post: {post.title}")
                 return {
                     "title": post.title,
                     "image_url": post.url,
                     "post_url": post.shortlink
                 }
 
-        print("No suitable image post found.")
+        logger.warning("No suitable image post found.")
         return None
 
     def download_image(self, image_url: str, save_path: str) -> str:
@@ -66,8 +67,8 @@ class WebScraper:
                 for chunk in response.iter_content(chunk_size=8192):
                     f.write(chunk)
 
-            print(f"Image downloaded successfully to {save_path}")
+            logger.info(f"Image downloaded successfully to {save_path}")
             return save_path
         except requests.exceptions.RequestException as e:
-            print(f"🚨 Error downloading image: {e}")
+            logger.error(f"Error downloading image: {e}", exc_info=True)
             return None

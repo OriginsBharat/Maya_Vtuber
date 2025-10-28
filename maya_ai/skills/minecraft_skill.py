@@ -1,5 +1,6 @@
 from javascript import require, On, once
 from maya_ai.skills.skill import Skill
+from loguru import logger
 
 mineflayer = require('mineflayer')
 
@@ -36,14 +37,17 @@ class MinecraftSkill(Skill):
                 'port': port,
                 'username': username
             })
+            logger.info(f"Connected to Minecraft server at {host}:{port} as {username}")
             return "Connected to Minecraft server."
         except Exception as e:
+            logger.error(f"Failed to connect to Minecraft server: {e}", exc_info=True)
             return f"Failed to connect to Minecraft server: {e}"
 
     def _disconnect(self):
         if self.bot:
             self.bot.quit()
             self.bot = None
+            logger.info("Disconnected from Minecraft server.")
             return "Disconnected from Minecraft server."
         return "Not connected."
 
@@ -66,8 +70,10 @@ class MinecraftSkill(Skill):
 
         if hasattr(self.bot, command):
             getattr(self.bot, command)(*args)
+            logger.info(f"Executed Minecraft command: {command} with args: {args}")
             return f"Executed command: {command}"
+        logger.warning(f"Unknown Minecraft command: {command}")
         return f"Unknown command: {command}"
 
-def create_skill(config_manager):
+def create_skill():
     return MinecraftSkill()

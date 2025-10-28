@@ -1,52 +1,42 @@
 import ollama
+from loguru import logger
+from maya_ai.config.config_loader import get_config
+import time
 
 class Brain:
     """
     The core brain of Maya, responsible for communicating with the Ollama LLM.
     """
-    def __init__(self, model="Meta-Llama-3.1-8B-Instruct"):
+    def __init__(self):
         """
-        Initializes the Brain with a specific LLM model.
+        Initializes the Brain with a specific LLM model from the config.
         """
-        self.model = model
+        self.config = get_config()
+        self.model = self.config.brain_model
 
-    def get_response(self, system_prompt: str, conversation_history: list) -> str:
+    def get_response(self, system_prompt: str, conversation_history: list[dict]) -> str:
         """
-        Gets a response from the LLM based on the system prompt and conversation history.
-
-        Args:
-            system_prompt: The initial instruction for the persona.
-            conversation_history: The list of previous messages in the conversation.
-
-        Returns:
-            The response from the LLM as a string.
+        Gets a response from the LLM with retry logic.
         """
-        messages = [
-            {"role": "system", "content": system_prompt}
-        ] + conversation_history
+        messages = [{"role": "system", "content": system_prompt}] + conversation_history
 
-        try:
-            response = ollama.chat(
-                model=self.model,
-                messages=messages
-            )
-            return response['message']['content']
-        except Exception as e:
-            print(f"Error communicating with Ollama: {e}")
-            return "I am having trouble thinking right now."
-
-    def parse_directive(self, directive: str) -> tuple:
-        """
-        Parses a complex directive into a command and arguments.
-        """
-        parts = directive.split()
-        command = parts[0]
-        args = parts[1:]
-        return command, args
+        for attempt in range(3):
+            try:
+                response = ollama.chat(
+                    model=self.model,
+                    messages=messages,
+                    options={'temperature': self.config.get('brain', 'temperature', 0.8)}
+                )
+                return response['message']['content']
+            except Exception as e:
+                logger.error(f"Error communicating with Ollama (attempt {attempt + 1}/3): {e}", exc_info=True)
+                if attempt < 2:
+                    time.sleep(5)
+        return "I am having trouble thinking right now."
 
     def get_gaming_action(self, world_state: dict, goal: str) -> str:
         """
-        Gets the next gaming action from the LLM based on the world state and goal.
+        Gets the next gaming action from the LLM.
         """
         system_prompt = f"""
 You are an AI playing Minecraft. Your goal is to: {goal}.
@@ -66,7 +56,7 @@ Example: {{"command": "chat", "args": ["Hello, world!"]}}
             )
             return response['message']['content']
         except Exception as e:
-            print(f"Error communicating with Ollama: {e}")
+            logger.error(f"Error getting gaming action from Ollama: {e}", exc_info=True)
             return "{}"
 
     def choose_skill(self, directive: str, skills: list) -> str:
@@ -93,5 +83,5 @@ Example: {{"skill": "Reddit Scraper Skill", "action": "get_top_posts", "args": {
             )
             return response['message']['content']
         except Exception as e:
-            print(f"Error communicating with Ollama: {e}")
+            logger.error(f"Error choosing skill from Ollama: {e}", exc_info=True)
             return "{}"

@@ -1,16 +1,16 @@
 from maya_ai.skills.skill import Skill
 import os
 import importlib
-
-from maya_ai.config.config_manager import ConfigManager
+from maya_ai.config.config_loader import get_config
+from loguru import logger
 
 class SkillManager:
     """
     Manages the loading and execution of different skill plugins.
     """
-    def __init__(self, config_manager: ConfigManager):
+    def __init__(self, config):
         self.skills = {}
-        self.config_manager = config_manager
+        self.config = config
         self._load_skills()
 
     def _load_skills(self):
@@ -23,16 +23,14 @@ class SkillManager:
                 module_name = f"maya_ai.skills.{filename[:-3]}"
                 try:
                     module = importlib.import_module(module_name)
-                    # Assumes each skill file has a create_skill() function
                     if hasattr(module, 'create_skill'):
-                        # Pass the config_manager to the create_skill function
-                        skill_instance = module.create_skill(self.config_manager)
+                        skill_instance = module.create_skill()
                         if isinstance(skill_instance, Skill):
                             skill_name = skill_instance.get_name()
                             self.skills[skill_name] = skill_instance
-                            print(f"Successfully loaded skill: {skill_name}")
+                            logger.info(f"Successfully loaded skill: {skill_name}")
                 except Exception as e:
-                    print(f"Failed to load skill from {module_name}: {e}")
+                    logger.error(f"Failed to load skill from {module_name}: {e}", exc_info=True)
 
     def get_skill_names(self) -> list:
         """

@@ -5,6 +5,7 @@ import pickle
 from googleapiclient.discovery import build
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
+from loguru import logger
 
 class YouTubeListener:
     """
@@ -66,7 +67,7 @@ class YouTubeListener:
         if not live_chat_id:
             raise Exception("This video does not have an active live chat.")
 
-        print(f"✅ Found Live Chat ID: {live_chat_id}")
+        logger.info(f"✅ Found Live Chat ID: {live_chat_id}")
         return live_chat_id
 
     def poll_chat(self):
@@ -91,7 +92,7 @@ class YouTubeListener:
     def start_polling(self):
         """Starts a background thread to continuously poll the chat."""
         import threading
-        print("▶️ Starting YouTube chat polling...")
+        logger.info("▶️ Starting YouTube chat polling...")
         poll_thread = threading.Thread(target=self._poll_worker, daemon=True)
         poll_thread.start()
 
@@ -101,5 +102,5 @@ class YouTubeListener:
             try:
                 self.poll_chat()
             except Exception as e:
-                print(f"🚨 Error polling YouTube chat: {e}")
+                logger.error(f"Error polling YouTube chat: {e}", exc_info=True)
                 time.sleep(15) # Wait longer on error

@@ -1,5 +1,6 @@
 import asyncio
 import pyvts
+from loguru import logger
 
 class VTSManager:
     """
@@ -29,9 +30,9 @@ class VTSManager:
             await self.vts.request_authenticate_token()
             await self.vts.request_authenticate()
             self.is_connected = True
-            print("Successfully connected to VTube Studio.")
+            logger.info("Successfully connected to VTube Studio.")
         except Exception as e:
-            print(f"Failed to connect to VTube Studio: {e}")
+            logger.error(f"Failed to connect to VTube Studio: {e}", exc_info=True)
             self.is_connected = False
 
     async def disconnect(self):
@@ -41,7 +42,7 @@ class VTSManager:
         if self.is_connected:
             await self.vts.close()
             self.is_connected = False
-            print("Disconnected from VTube Studio.")
+            logger.info("Disconnected from VTube Studio.")
 
     async def trigger_hotkey(self, hotkey_name: str):
         """
@@ -51,31 +52,29 @@ class VTSManager:
             hotkey_name: The name of the hotkey to trigger.
         """
         if not self.is_connected:
-            print("Not connected to VTube Studio.")
+            logger.warning("Not connected to VTube Studio.")
             return
 
         hotkey_request = self.vts.vts_request.requestTriggerHotKey(hotkey_name)
         try:
             await self.vts.request(hotkey_request)
-            print(f"Triggered hotkey: {hotkey_name}")
+            logger.info(f"Triggered hotkey: {hotkey_name}")
         except Exception as e:
-            print(f"Failed to trigger hotkey {hotkey_name}: {e}")
+            logger.error(f"Failed to trigger hotkey {hotkey_name}: {e}", exc_info=True)
 
-# Example usage for testing
 async def main():
+    logger.add("logs/maya.log", level="INFO", rotation="10 MB", retention="5 days")
     vts_manager = VTSManager()
     await vts_manager.connect()
 
     if vts_manager.is_connected:
-        # In a real scenario, you would have hotkeys in VTube Studio
-        # named "StartTalking" and "StopTalking" that control the mouth open parameter.
-        print("\n--- Testing Hotkey Triggers ---")
-        print("Triggering 'StartTalking' (imagine avatar mouth opens)...")
+        logger.info("\n--- Testing Hotkey Triggers ---")
+        logger.info("Triggering 'StartTalking' (imagine avatar mouth opens)...")
         await vts_manager.trigger_hotkey("StartTalking")
 
-        await asyncio.sleep(3) # Simulate talking for 3 seconds
+        await asyncio.sleep(3)
 
-        print("Triggering 'StopTalking' (imagine avatar mouth closes)...")
+        logger.info("Triggering 'StopTalking' (imagine avatar mouth closes)...")
         await vts_manager.trigger_hotkey("StopTalking")
 
         await vts_manager.disconnect()

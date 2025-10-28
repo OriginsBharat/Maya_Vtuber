@@ -1,12 +1,13 @@
 import torch
 from diffusers import AutoPipelineForText2Image
+from loguru import logger
 
 class ImageGenerator:
     """
     Generates images from text prompts using a local Stable Diffusion model.
     """
     def __init__(self):
-        print("🎨 Image Generator initialized.")
+        logger.info("🎨 Image Generator initialized.")
         self.pipeline = None
 
     def _load_pipeline(self):
@@ -14,7 +15,7 @@ class ImageGenerator:
         if self.pipeline:
             return
 
-        print("Loading Stable Diffusion model...")
+        logger.info("Loading Stable Diffusion model...")
         model_id = "runwayml/stable-diffusion-v1-5"
         if torch.cuda.is_available():
             device = "cuda"
@@ -26,14 +27,14 @@ class ImageGenerator:
             device = "cpu"
             dtype = torch.float32
 
-        print(f"Using device: {device} with dtype: {dtype}")
+        logger.info(f"Using device: {device} with dtype: {dtype}")
 
         self.pipeline = AutoPipelineForText2Image.from_pretrained(
             model_id,
             torch_dtype=dtype,
             variant="fp16" if dtype == torch.float16 else None
         ).to(device)
-        print("✅ Stable Diffusion model loaded.")
+        logger.info("✅ Stable Diffusion model loaded.")
 
     def generate_image(self, prompt: str, output_path: str = "scene_image.png"):
         """
@@ -48,9 +49,8 @@ class ImageGenerator:
         """
         try:
             self._load_pipeline()
-            print(f"Generating image for prompt: '{prompt}'")
+            logger.info(f"Generating image for prompt: '{prompt}'")
 
-            # Add more detail to the prompt for a consistent anime style
             full_prompt = (
                 f"{prompt}, high quality anime art, detailed, cinematic lighting, "
                 f"by makoto shinkai, studio ghibli"
@@ -59,9 +59,9 @@ class ImageGenerator:
             image = self.pipeline(prompt=full_prompt).images[0]
             image.save(output_path)
 
-            print(f"✅ Image generated successfully at '{output_path}'")
+            logger.info(f"✅ Image generated successfully at '{output_path}'")
             return output_path
 
         except Exception as e:
-            print(f"🚨 An error occurred during image generation: {e}")
+            logger.error(f"🚨 An error occurred during image generation: {e}", exc_info=True)
             return None

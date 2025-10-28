@@ -2,6 +2,7 @@ import websocket
 import threading
 import json
 import time
+from loguru import logger
 
 class MinecraftAgent:
     """
@@ -23,7 +24,7 @@ class MinecraftAgent:
         self.port = port
         self.username = username
         self.ws_url = f"ws://localhost:{port}"
-        print("🐍 Python agent attempting to connect to WebSocket bridge...")
+        logger.info("🐍 Python agent attempting to connect to WebSocket bridge...")
         try:
             self.ws = websocket.WebSocketApp(self.ws_url,
                                              on_open=self.on_open,
@@ -41,16 +42,16 @@ class MinecraftAgent:
                 timeout -= 0.1
 
             if not self.is_connected:
-                print("🚨 Connection to WebSocket timed out.")
+                logger.error("Connection to WebSocket timed out.")
                 return False
 
             return True
         except Exception as e:
-            print(f"🚨 Failed to connect to WebSocket: {e}")
+            logger.error(f"Failed to connect to WebSocket: {e}", exc_info=True)
             return False
 
     def on_open(self, ws):
-        print("✅ Python agent connected to WebSocket bridge.")
+        logger.info("✅ Python agent connected to WebSocket bridge.")
         self.is_connected = True
         connect_command = {
             "command": "connect",
@@ -68,14 +69,14 @@ class MinecraftAgent:
         if data.get('type') == 'world_state':
             self.latest_world_state = data
             # For debugging, we can print a summary
-            # print(f"Received world state: Position {data['position']}")
+            # logger.debug(f"Received world state: Position {data['position']}")
 
     def on_error(self, ws, error):
-        print(f"🚨 WebSocket Error: {error}")
+        logger.error(f"WebSocket Error: {error}")
         self.is_connected = False
 
     def on_close(self, ws, close_status_code, close_msg):
-        print("🔴 WebSocket connection closed.")
+        logger.info("🔴 WebSocket connection closed.")
         self.is_connected = False
 
     def send_command(self, command: dict):
@@ -83,7 +84,7 @@ class MinecraftAgent:
         if self.is_connected:
             self.ws.send(json.dumps(command))
         else:
-            print("🚨 Cannot send command: not connected to WebSocket.")
+            logger.warning("Cannot send command: not connected to WebSocket.")
 
     def get_latest_world_state(self) -> dict:
         """Returns the most recent world state received from the bot."""

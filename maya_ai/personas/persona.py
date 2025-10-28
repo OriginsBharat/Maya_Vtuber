@@ -1,13 +1,14 @@
 from maya_ai.brain.core import Brain
 from maya_ai.memory.memory_manager import MemoryManager
-from maya_ai.config.config_manager import ConfigManager
+from maya_ai.config.config_loader import get_config
+from loguru import logger
 import uuid
 
 class Persona:
     """
     Represents a single AI persona, with its own personality, memory, and voice.
     """
-    def __init__(self, brain: Brain, name: str, system_prompt: str, config_manager: ConfigManager):
+    def __init__(self, brain: Brain, name: str, system_prompt: str):
         """
         Initializes a Persona.
         """
@@ -15,35 +16,34 @@ class Persona:
         self.name = name
         self.system_prompt = system_prompt
         self.conversation_history = []
-        # The MemoryManager now requires the ConfigManager
-        self.memory = MemoryManager(persona_name=name, config_manager=config_manager)
+        self.memory = MemoryManager(persona_name=name)
+        logger.info(f"Persona '{self.name}' initialized.")
 
     def think(self, incoming_message: str) -> str:
-        # (This logic remains the same as the previous memory-enabled version)
-        recalled_memories = self.memory.recall_memories(query_text=incoming_message, num_memories=3)
-        memory_context = "\n".join(recalled_memories)
+        logger.info(f"'{self.name}' is thinking about: {incoming_message}")
+        recalled_facts = self.memory.recall_facts(query=incoming_message)
+        memory_context = "\n".join(recalled_facts)
 
         self.add_to_history("user", incoming_message)
 
         contextual_prompt = f"""
-        Relevant memories:
-        <memories>
+        Relevant facts:
+        <facts>
         {memory_context}
-        </memories>
-        Respond to the latest message based on these memories.
+        </facts>
+        Respond to the latest message based on these facts and the conversation history.
         """
 
-        full_history_for_llm = [{"role": "system", "content": self.system_prompt + "\n" + contextual_prompt}] + self.conversation_history
+        response = self.brain.get_response(self.system_prompt + "\n" + contextual_prompt, self.conversation_history)
 
-        response = self.brain.get_response(full_history_for_llm)
-
-        self.add_to_history("assistant", response)
+        self.add_to_history(self.name, response)
 
         return response
 
     def add_to_history(self, role: str, content: str):
         self.conversation_history.append({"role": role, "content": content})
-        self.memory.add_memory(f"{role}: {content}")
+        self.memory.add_conversation_turn(speaker=role, text=content)
 
     def clear_history(self):
         self.conversation_history = []
+        logger.info(f"Conversation history for '{self.name}' cleared.")

@@ -2,6 +2,8 @@ import time
 import json
 from maya_ai.brain.core import Brain
 from maya_ai.skills.skill_manager import SkillManager
+from loguru import logger
+from typing import Dict, Any
 
 class GamingOrchestrator:
     def __init__(self, brain: Brain, skill_manager: SkillManager):
@@ -10,13 +12,13 @@ class GamingOrchestrator:
         self.minecraft_skill = self.skill_manager.get_skill("Minecraft Skill")
         self.is_running = False
 
-    def start_autonomous_loop(self, goal: str):
+    def start_autonomous_loop(self, goal: str) -> None:
         if not self.minecraft_skill:
-            print("Minecraft skill not found.")
+            logger.error("Minecraft skill not found.")
             return
 
         self.is_running = True
-        print(f"Starting autonomous gaming loop with goal: {goal}")
+        logger.info(f"Starting autonomous gaming loop with goal: {goal}")
 
         while self.is_running:
             try:
@@ -28,9 +30,9 @@ class GamingOrchestrator:
             except KeyboardInterrupt:
                 self.stop_autonomous_loop()
             except Exception as e:
-                print(f"An error occurred in the autonomous loop: {e}")
+                logger.error(f"An error occurred in the autonomous loop: {e}", exc_info=True)
                 self.stop_autonomous_loop()
 
-    def stop_autonomous_loop(self):
+    def stop_autonomous_loop(self) -> None:
         self.is_running = False
-        print("Stopping autonomous gaming loop.")
+        logger.info("Stopping autonomous gaming loop.")
