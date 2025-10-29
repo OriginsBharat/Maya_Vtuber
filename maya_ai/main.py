@@ -12,6 +12,8 @@ from maya_ai.config.config_loader import get_config
 from loguru import logger
 import numpy as np
 
+from maya_ai.proactive_orchestrator import ProactiveOrchestrator
+
 # --- Initialization ---
 config = get_config()
 logger.add(
@@ -23,6 +25,8 @@ logger.add(
 
 orchestrator = Orchestrator()
 gaming_orchestrator = GamingOrchestrator(orchestrator.brain, orchestrator.skill_manager)
+proactive_orchestrator = ProactiveOrchestrator(orchestrator.brain, orchestrator.skill_manager, {"Sarjana": orchestrator.sarjana, "Durjana": orchestrator.durjana})
+proactive_orchestrator.start()
 mc_skill = orchestrator.skill_manager.get_skill("Minecraft Skill")
 tts_manager = TTSManager()
 vts_manager = VTSManager()

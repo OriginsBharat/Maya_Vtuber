@@ -44,3 +44,12 @@ paths:
   temp: "temp/"
   output: "output/"
   logs: "logs/"
+
+proactive_creator:
+  shared_subreddits:
+    - "interestingasfuck"
+    - "tifu"
+    - "facepalm"
+    - "mildlyinteresting"
+    - "wholesomememes"
+    - "MadeMeSmile"
