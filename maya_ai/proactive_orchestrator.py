@@ -39,10 +39,11 @@ class ProactiveOrchestrator:
         while self.is_running:
             logger.info("Scanning for new content...")
 
+            scan_interval = self.config.get('proactive_creator', 'scan_interval_seconds', 3600)
             reddit_scraper = self.skill_manager.get_skill("Reddit Scraper Skill")
             if not reddit_scraper:
                 logger.error("Reddit Scraper Skill not found. Cannot perform content discovery.")
-                time.sleep(3600)
+                time.sleep(scan_interval)
                 continue
 
             # In a real-world scenario, we'd track seen posts to avoid duplicates.

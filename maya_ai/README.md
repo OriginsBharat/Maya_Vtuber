@@ -12,6 +12,7 @@ This project is built to be 100% free and run locally, using Ollama to power the
 
 *   **Dual-Persona System:** Two independent AI agents, Sarjana and Durjana, with unique and editable personalities.
 *   **YAML Configuration:** Easily manage all project settings through a simple `config.yaml` file.
+*   **Secure Secret Management:** All API keys are managed securely using a `.env` file.
 *   **Robust Logging:** All major events are logged to a file using `loguru` for easy debugging.
 *   **Cloud-Based Long-Term Memory:** Maya's consciousness lives in the cloud, powered by Pinecone. Her memory is persistent and scalable.
 *   **Director's Cockpit UI:** A beginner-friendly web interface to:
@@ -27,55 +28,70 @@ This project is built to be 100% free and run locally, using Ollama to power the
 
 ## Setup and Installation Guide
 
-Follow these steps to get the Maya AI Project running on your Windows 11 machine.
+Follow the `QUICKSTART.md` for the fastest way to get started. This guide provides more detailed information.
 
-### 1. Set Up Your Cloud Services (One-Time Setup)
+### 1. Set Up Your API Keys (One-Time Setup)
 
-This project uses free cloud services to manage configuration and memory. You will need to create a free account for each.
+This project uses free services that require API keys. You will need to create free accounts for each.
 
-*   **Pinecone (Cloud Memory):**
-    1.  Go to [pinecone.io](https://pinecone.io) and create a free account.
-    2.  In the Pinecone console, find your **API Key**.
-
-*   **Reddit & Twitter:**
-    1.  Create developer accounts for Reddit and X (Twitter) to get your API credentials.
+1.  **Copy the Example `.env` file:**
+    ```bash
+    cp .env.example .env
+    ```
+2.  **Edit the `.env` file and add your keys:**
+    *   `PINECONE_API_KEY`: Get this from [pinecone.io](https://pinecone.io) after creating a free account.
+    *   `REDDIT_CLIENT_ID` & `REDDIT_CLIENT_SECRET`: Create a new "script" app at [reddit.com/prefs/apps](https://www.reddit.com/prefs/apps).
+    *   `TWITTER_BEARER_TOKEN`: Get this from the [Twitter Developer Portal](https://developer.twitter.com/).
 
 ### 2. Local Environment Setup
 
 *   **Install Python 3.11:** This project requires Python 3.11. If you don't have it, we recommend using `pyenv` for Windows to manage Python versions.
-*   **Create `config.yaml`:** In the project root, create a copy of `config.example.yaml` and name it `config.yaml`. Open this new file and fill in your API keys from Pinecone, Reddit, and Twitter.
-*   **Install Dependencies:** Open a terminal in the `maya_ai` project directory and run:
+*   **Install Dependencies:** Open a terminal in the project root directory and run:
     ```bash
     pip install -r requirements.txt
     ```
-*   **Index TTS Setup:** This project uses Index TTS. Please follow the setup instructions on the official [Index TTS GitHub repository](https://github.com/X-LANCE/Index-1.9B) to download the necessary models and place them in the `vendor/index-tts/checkpoints` directory.
 
-### 3. Running the Application
+### 3. Index TTS Setup (For Voice Generation)
 
-1.  **Start Ollama:** Ensure your local Ollama server is running.
+This is the most complex part of the setup. Follow these instructions carefully.
+
+1.  **Download the Models:** You need to download the pre-trained models for Index TTS. You can find them here: [Index TTS v1.9B Pre-trained Models](https://huggingface.co/X-LANCE/Index-1.9B-v2/tree/main).
+    *   Download `config.yaml`.
+    *   Download `pytorch_model.bin`.
+
+2.  **Place Models in the Correct Directory:**
+    *   Make sure you are in the project's root directory.
+    *   The models you downloaded must be placed inside the `vendor/index-tts/checkpoints/` directory.
+    *   Verify the final structure:
+        ```
+        vendor/
+        └── index-tts/
+            └── checkpoints/
+                ├── config.yaml
+                └── pytorch_model.bin
+        ```
+
+3.  **Record Voice References:**
+    *   Record a short (`~10-15 seconds`) audio clip of the voices you want for Sarjana and Durjana.
+    *   Save them as `.wav` files and place them in the `voices/` directory.
+    *   Update your `config.yaml` file to point to these new files.
+
+### 4. Running the Application
+
+1.  **Start Ollama:** Ensure your local Ollama server is running and you have pulled the correct model: `ollama pull llama3.1:8b`.
 2.  **Start VTube Studio:** If you want to see the avatar, have VTube Studio open with the API enabled.
 3.  **Launch the Director's Cockpit:** In a terminal at the project root, run:
     ```bash
-    PYTHONPATH=. python3 maya_ai/main.py
+    python maya_ai/main.py
     ```
-4.  Open your web browser to the URL provided by the script (usually `http://127.0.0.1:7860`). You are now ready to direct Maya!
-
-## Configuration Reference
-
-The `config.yaml` file is the central place to manage all settings for the Maya AI Project. Here's a brief overview of the available options:
-
-| Section | Key | Description |
-|---|---|---|
-| `brain` | `model` | The name of the Ollama model to use for the AI's brain. |
-| `tts` | `model_dir` | The directory where the Index TTS models are stored. |
-| `memory` | `embedding_model` | The Sentence Transformers model to use for creating memory embeddings. |
-| `personas` | `sarjana.prompt_file` | The path to the system prompt file for the Sarjana persona. |
-| `ui` | `gradio.port` | The port to run the Gradio web UI on. |
-| `logging` | `level` | The minimum logging level to output (e.g., "INFO", "DEBUG"). |
-| `paths` | `voices` | The directory to store voice reference files. |
+4.  Open your web browser to the URL provided by the script (usually `http://127.0.0.1:7861`). You are now ready to direct Maya!
 
 ## Troubleshooting
 
-*   **`ModuleNotFoundError`:** If you get this error when running the application, make sure you are running the command from the project root and that you have set the `PYTHONPATH` correctly.
-*   **TTS Errors:** If you are having trouble with the TTS, make sure you have followed the Index TTS setup instructions correctly and that the model files are in the correct directory.
-*   **Pinecone Errors:** If you are having trouble with Pinecone, make sure you have set your `PINECONE_API_KEY` correctly in the `config.yaml` file.
+*   **`ModuleNotFoundError: No module named 'maya_ai'`:** You are not running the command from the project's root directory. `cd` to the root and try again.
+*   **`ModuleNotFoundError: No module named 'indextts'`:** The `PYTHONPATH` is not set correctly. The `python maya_ai/main.py` command should handle this automatically, but if you are using a different method, you may need to set it manually: `export PYTHONPATH=.
+vendor/`.
+*   **TTS Errors:**
+    *   "Config file not found" or "Model file not found": You have not placed the downloaded `config.yaml` and `pytorch_model.bin` files in the correct `vendor/index-tts/checkpoints/` directory.
+    *   Low-quality or robotic voice: Your voice reference clips may be too short or have too much background noise. Try recording a clearer, longer sample.
+*   **`ValueError: PINECONE_API_KEY not found`:** You have not created your `.env` file or have not added your Pinecone API key to it.

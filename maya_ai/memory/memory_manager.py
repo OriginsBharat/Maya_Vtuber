@@ -15,10 +15,11 @@ class MemoryManager:
 
         self.api_key = self.config.get_api_key('PINECONE_API_KEY')
         if not self.api_key:
-            logger.warning("PINECONE_API_KEY environment variable not set. MemoryManager will be disabled.")
-            self.pc = None
-            self.index = None
-            return
+            raise ValueError(
+                "PINECONE_API_KEY not found in environment variables.\n"
+                "Please add it to your .env file:\n"
+                "PINECONE_API_KEY=your_key_here"
+            )
 
         self.pc = Pinecone(api_key=self.api_key)
         self.index_name = f"{self.config.get('memory', 'pinecone_index_prefix', 'maya-memory')}-{self.persona_name.lower()}"

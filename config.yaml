@@ -46,6 +46,7 @@ paths:
   logs: "logs/"
 
 proactive_creator:
+  scan_interval_seconds: 3600
   shared_subreddits:
     - "interestingasfuck"
     - "tifu"
