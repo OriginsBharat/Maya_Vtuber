@@ -126,6 +126,78 @@ def stop_gaming_loop():
         return "Autonomous gaming loop stopped."
     return "Autonomous gaming loop is not running."
 
+# --- Proactive Creator UI Logic ---
+def _format_suggestions_df(suggestions):
+    if not suggestions:
+        return pd.DataFrame({"ID": [], "Persona": [], "Title": [], "Take": []})
+
+    # Add a unique ID to each suggestion for selection
+    df = pd.DataFrame({
+        "ID": [i for i, _ in enumerate(suggestions)],
+        "Persona": [s['persona_name'] for s in suggestions],
+        "Title": [s['title'] for s in suggestions],
+        "Take": [s['take'] for s in suggestions]
+    })
+    return df
+
+def _on_select_suggestion(evt: gr.SelectData):
+    if evt.index is None:
+        return "", "", "", ""
+
+    selected_id = evt.index[0] # The row index acts as our ID
+    suggestion = proactive_orchestrator.get_suggestions()[selected_id]
+
+    return (
+        selected_id,
+        suggestion['title'],
+        suggestion['url'],
+        suggestion['take']
+    )
+
+def _refresh_suggestions():
+    all_suggestions = proactive_orchestrator.get_suggestions()
+
+    pending = [s for s in all_suggestions if s.get('status', 'pending') == 'pending']
+    approved = [s for s in all_suggestions if s.get('status') == 'approved']
+
+    pending_df = _format_suggestions_df(pending)
+
+    if not approved:
+        approved_df = pd.DataFrame({"Persona": [], "Title": [], "Final Take": []})
+    else:
+        approved_df = pd.DataFrame({
+            "Persona": [s['persona_name'] for s in approved],
+            "Title": [s['title'] for s in approved],
+            "Final Take": [s['take'] for s in approved]
+        })
+
+    return pending_df, approved_df
+
+def _approve_suggestion(selected_id, edited_take):
+    if not selected_id:
+        return gr.update(), gr.update(), "", "", "", ""
+
+    suggestion_id = int(selected_id)
+    suggestion = proactive_orchestrator.get_suggestions()[suggestion_id]
+
+    suggestion['status'] = 'approved'
+    suggestion['take'] = edited_take
+
+    pending_df, approved_df = _refresh_suggestions()
+
+    return pending_df, approved_df, "", "", "", ""
+
+def _reject_suggestion(selected_id):
+    if not selected_id:
+        return gr.update(), gr.update(), "", "", "", ""
+
+    suggestion_id = int(selected_id)
+    proactive_orchestrator.get_suggestions()[suggestion_id]['status'] = 'rejected'
+
+    pending_df, approved_df = _refresh_suggestions()
+
+    return pending_df, approved_df, "", "", "", ""
+
 # --- UI Definition ---
 with gr.Blocks() as iface:
     gr.Markdown("# Maya AI - Director's Cockpit")
@@ -155,6 +227,26 @@ with gr.Blocks() as iface:
                     with gr.Row():
                         start_loop_btn = gr.Button("Start Autonomous Loop")
                         stop_loop_btn = gr.Button("Stop Autonomous Loop")
+        with gr.Tab("Proactive Creator"):
+            pc_refresh_btn = gr.Button("Refresh Suggestions")
+            with gr.Row():
+                with gr.Column():
+                    gr.Markdown("### New Suggestions")
+                    pc_suggestions_df = gr.DataFrame(headers=["ID", "Persona", "Title", "Take"], interactive=True, row_count=(5), col_count=(4), wrap=True, visible_cols=[False, True, True, True])
+
+                    gr.Markdown("#### Edit Suggestion")
+                    pc_selected_id = gr.Textbox(label="Selected ID", interactive=False)
+                    pc_selected_title = gr.Textbox(label="Title", interactive=False)
+                    pc_selected_url = gr.Textbox(label="Source URL", interactive=False)
+                    pc_edit_take = gr.Textbox(label="Edit Take", lines=3)
+                    with gr.Row():
+                        pc_approve_btn = gr.Button("Approve")
+                        pc_reject_btn = gr.Button("Reject")
+
+                with gr.Column():
+                    gr.Markdown("### Approved Queue")
+                    pc_approved_df = gr.DataFrame(headers=["Persona", "Title", "Final Take"], interactive=False, row_count=(10), col_count=(3), wrap=True)
+
         with gr.Tab("Memory"):
             with gr.Row():
                 with gr.Column():
@@ -192,5 +284,10 @@ with gr.Blocks() as iface:
 
     start_loop_btn.click(start_gaming_loop, inputs=goal_input, outputs=loop_status)
     stop_loop_btn.click(stop_gaming_loop, outputs=loop_status)
+
+    pc_suggestions_df.select(_on_select_suggestion, None, [pc_selected_id, pc_selected_title, pc_selected_url, pc_edit_take])
+    pc_refresh_btn.click(_refresh_suggestions, None, [pc_suggestions_df, pc_approved_df])
+    pc_approve_btn.click(_approve_suggestion, [pc_selected_id, pc_edit_take], [pc_suggestions_df, pc_approved_df, pc_selected_id, pc_selected_title, pc_selected_url, pc_edit_take])
+    pc_reject_btn.click(_reject_suggestion, [pc_selected_id], [pc_suggestions_df, pc_approved_df, pc_selected_id, pc_selected_title, pc_selected_url, pc_edit_take])
 
 iface.launch(server_port=config.get('ui', 'gradio', {}).get('port', 7860), share=config.get('ui', 'gradio', {}).get('share', False))

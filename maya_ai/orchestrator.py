@@ -1,6 +1,5 @@
 from maya_ai.brain.core import Brain
-from maya_ai.personas.sarjana import create_sarjana
-from maya_ai.personas.durjana import create_durjana
+from maya_ai.personas.persona import Persona
 from maya_ai.config.config_loader import get_config
 from maya_ai.skills.skill_manager import SkillManager
 from loguru import logger
@@ -23,10 +22,14 @@ class Orchestrator:
             raise
 
         self.brain = Brain()
-        self.skill_manager = SkillManager(self.config)
+        self.skill_manager = SkillManager()
 
-        self.sarjana = create_sarjana(self.brain)
-        self.durjana = create_durjana(self.brain)
+        sarjana_prompt_file = self.config.get('personas', {}).get('sarjana', {}).get('prompt_file')
+        self.sarjana = Persona(name="Sarjana", brain=self.brain, persona_prompt_file=sarjana_prompt_file)
+
+        durjana_prompt_file = self.config.get('personas', {}).get('durjana', {}).get('prompt_file')
+        self.durjana = Persona(name="Durjana", brain=self.brain, persona_prompt_file=durjana_prompt_file)
+
         logger.info("Orchestrator initialized successfully.")
 
     def run_interaction_cycle(self, simulated_chat: List[str], hint: str = None, goal: str = None) -> Tuple[str, str]:
