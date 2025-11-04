@@ -22,7 +22,7 @@ class Orchestrator:
             raise
 
         self.brain = Brain()
-        self.skill_manager = SkillManager()
+        self.skill_manager = SkillManager(brain=self.brain)
 
         sarjana_prompt_file = self.config.get('personas', {}).get('sarjana', {}).get('prompt_file')
         self.sarjana = Persona(name="Sarjana", brain=self.brain, persona_prompt_file=sarjana_prompt_file)

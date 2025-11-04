@@ -85,3 +85,26 @@ Example: {{"skill": "Reddit Scraper Skill", "action": "get_top_posts", "args": {
         except Exception as e:
             logger.error(f"Error choosing skill from Ollama: {e}", exc_info=True)
             return "{}"
+
+    def see_and_think(self, prompt: str, image_path: str) -> str:
+        """
+        Analyzes an image with a text prompt using a multimodal model (LLaVA).
+        """
+        logger.info(f"Analyzing image {image_path} with prompt: '{prompt}'")
+        try:
+            # The llava model is hardcoded for now, as it's our primary visual model.
+            # This could be made configurable in the future if needed.
+            response = ollama.chat(
+                model='llava',
+                messages=[
+                    {
+                        'role': 'user',
+                        'content': prompt,
+                        'images': [image_path]
+                    }
+                ]
+            )
+            return response['message']['content']
+        except Exception as e:
+            logger.error(f"Error during multimodal analysis with Ollama: {e}", exc_info=True)
+            return "I am having trouble understanding what I'm seeing right now."

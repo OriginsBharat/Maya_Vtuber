@@ -35,5 +35,5 @@ class WebSearchSkill(Skill):
             logger.error(f"Error performing web search: {e}", exc_info=True)
             return f"Error performing web search: {e}"
 
-def create_skill():
+def create_skill(brain):
     return WebSearchSkill()

@@ -63,5 +63,5 @@ class RedditScraperSkill(Skill):
             logger.error(f"Error fetching from Reddit API: {e}", exc_info=True)
             return [f"Error fetching from Reddit API: {e}"]
 
-def create_skill():
+def create_skill(brain):
     return RedditScraperSkill()

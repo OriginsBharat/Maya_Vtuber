@@ -17,7 +17,8 @@ from maya_ai.handlers.interaction_handlers import (
     _refresh_suggestions,
     _on_select_suggestion,
     _approve_suggestion,
-    _reject_suggestion
+    _reject_suggestion,
+    run_visual_sense_wrapper
 )
 from maya_ai.vtube.vts_manager import VTSManager
 
@@ -37,6 +38,10 @@ def launch_ui(config, vts_manager):
             with gr.Tab("Twitter"):
                 t_input = gr.Textbox(label="Username")
                 t_btn = gr.Button("Run")
+            with gr.Tab("Visual Sense"):
+                vs_prompt_input = gr.Textbox(label="Analysis Prompt", value="Describe what you see on the screen in detail.")
+                vs_analyze_btn = gr.Button("Analyze Screen")
+                vs_output_text = gr.Textbox(label="Analysis Result", lines=5)
             with gr.Tab("Gaming"):
                 with gr.Tabs():
                     with gr.TabItem("Setup"):
@@ -112,5 +117,7 @@ def launch_ui(config, vts_manager):
         pc_refresh_btn.click(_refresh_suggestions, None, [pc_suggestions_df, pc_approved_df])
         pc_approve_btn.click(_approve_suggestion, [pc_selected_id, pc_edit_take], [pc_suggestions_df, pc_approved_df, pc_selected_id, pc_selected_title, pc_selected_url, pc_edit_take])
         pc_reject_btn.click(_reject_suggestion, [pc_selected_id], [pc_suggestions_df, pc_approved_df, pc_selected_id, pc_selected_title, pc_selected_url, pc_edit_take])
+
+        vs_analyze_btn.click(run_visual_sense_wrapper, [vs_prompt_input], [vs_output_text], show_progress="full")
 
     iface.launch(server_port=config.get('ui', 'gradio', {}).get('port', 7860), share=config.get('ui', 'gradio', {}).get('share', False))

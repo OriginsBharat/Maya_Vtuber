@@ -64,5 +64,5 @@ class TwitterScraperSkill(Skill):
             logger.error(f"Error fetching from Twitter API: {e}", exc_info=True)
             return [f"Error fetching from Twitter API: {e}"]
 
-def create_skill():
+def create_skill(brain):
     return TwitterScraperSkill()

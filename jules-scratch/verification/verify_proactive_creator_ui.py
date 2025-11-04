@@ -9,13 +9,12 @@ def run_verification():
             # Navigate to the Gradio app
             page.goto("http://localhost:7861")
 
-            # Wait for the UI to load and find the "Proactive Creator" tab button
-            # Gradio uses button roles for tabs, we find it by its text content.
-            proactive_tab_button = page.get_by_text("Proactive Creator")
-            proactive_tab_button.click()
+            # Wait for the UI to load and find the "Visual Sense" tab button
+            visual_sense_tab = page.get_by_text("Visual Sense")
+            visual_sense_tab.click()
 
             # Take a screenshot of the entire page
-            page.screenshot(path="jules-scratch/verification/proactive_creator_ui.png")
+            page.screenshot(path="jules-scratch/verification/visual_sense_ui.png")
 
             print("Screenshot taken successfully.")
 

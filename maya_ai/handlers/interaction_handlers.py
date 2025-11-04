@@ -153,6 +153,15 @@ def _approve_suggestion(selected_id, edited_take):
 
     return pending_df, approved_df, "", "", "", ""
 
+def run_visual_sense_wrapper(prompt):
+    """
+    Wrapper function to call the Visual Sense skill from the UI.
+    """
+    skill = orchestrator.skill_manager.get_skill("Visual Sense Skill")
+    if not skill:
+        return "Error: Visual Sense Skill not found."
+    return skill.perform_action("analyze_screen", prompt=prompt)
+
 def _reject_suggestion(selected_id):
     if not selected_id:
         return gr.update(), gr.update(), "", "", "", ""
