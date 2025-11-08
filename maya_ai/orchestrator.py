@@ -2,6 +2,7 @@ from maya_ai.brain.core import Brain
 from maya_ai.personas.persona import Persona
 from maya_ai.config.config_loader import get_config
 from maya_ai.skills.skill_manager import SkillManager
+from maya_ai.state_manager import StateManager
 from loguru import logger
 import os
 import json
@@ -22,6 +23,7 @@ class Orchestrator:
             raise
 
         self.brain = Brain()
+        self.state_manager = StateManager()
         self.skill_manager = SkillManager(brain=self.brain)
 
         sarjana_prompt_file = self.config.get('personas', {}).get('sarjana', {}).get('prompt_file')

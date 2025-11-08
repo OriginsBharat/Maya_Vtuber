@@ -24,6 +24,7 @@ gradio>=4.44.0
 pandas>=2.2.0
 
 # Utilities
+psutil>=5.9.0
 mss>=9.0.1
 requests>=2.31.0
 beautifulsoup4>=4.12.0

@@ -54,3 +54,14 @@ proactive_creator:
     - "mildlyinteresting"
     - "wholesomememes"
     - "MadeMeSmile"
+
+state_manager:
+  default_state: "Idle"
+  context_processes:
+    "Watching Video":
+      - "chrome.exe"
+      - "firefox.exe"
+      - "msedge.exe"
+    "Playing Game":
+      - "minecraft.exe"
+      - "javaw.exe" # Often used by Java-based games like Minecraft
